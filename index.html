@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Document</title>
+	<link href="https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="css/normalize.css">
+	<link rel="stylesheet" href="css/fonts.css">
+	<link rel="stylesheet" href="css/jquery.fancybox.min.css">
+	<link rel="stylesheet" href="css/jquery.formstyler.css">
+	<link rel="stylesheet" href="css/slick.css">
+	<link rel="stylesheet" href="css/style.css">
+	<link rel="stylesheet" href="css/media.css">
+</head>
+<body>
+	<header class="header">
+		<div class="header__top">
+			<div class="container">
+				<div class="header__contacts">
+				<a class="header__phone" href="tel:+79600925814">+7(960)092-5814</a>
+				<a class="header__email" href="#">konstantinsinichkin1@gmail.com</a>
+				<a data-fancybox data-src="#modal" href="javascript:;" class="header__btn" href="#">Бесплатная консультация</a>
+				</div>
+			</div>
+		</div>
+		<div class="header__content">
+			<div class="container">
+				<div class="header__content-inner">
+					<div class="header__logo">
+						<a href="#">
+							<img src="img/logo.png" alt="" >
+						</a>
+					</div>
+					<nav class="menu">
+						<div class="header__btn-menu">
+							<span class="icon-bars"></span>
+						</div>
+						<ul>
+							<li><a href="#">Главная</a></li>
+							<li><a href="#">О компании</a></li>
+							<li><a href="#">Услуги</a></li>
+							<li><a href="#">Контакты</a></li>
+						</ul>
+					</nav>
+				</div>	
+			</div>
+		</div>	
+	</header>
+<section class="slider">
+	<div class="container">
+		<div class="slider__inner">
+			<div class="slider__item">
+				<div class="slider__item-content">
+					<div class="slider__title">
+						КОМПЛЕКСНЫЕ РЕШЕНИЯ В СФЕРЕ IT
+					</div>
+					<div class="slider__text">
+						Создание персонального и современного решения для реализации Ваших идей.
+					</div>	
+					<a data-fancybox data-src="#modal" href="javascript:;" class="slider__btn default-btn">
+						Оставить заявку
+					</a>
+				</div>
+			</div>
+			<div class="slider__item">
+				<div class="slider__item-content">
+					<div class="slider__title">
+						РАЗРАБОТКА СОВРЕМЕННЫХ ВЕБ-САЙТОВ 
+					</div>
+					<div class="slider__text">
+						Удобные и современные веб-сайты на популярном фреймфорке Django.
+					</div>	
+					<a data-fancybox data-src="#modal" href="javascript:;" class="slider__btn default-btn">
+						Оставить заявку
+					</a>
+				</div>
+			</div>
+			<div class="slider__item">
+				<div class="slider__item-content">
+					<div class="slider__title">
+						АДАПТИВНЫЙ ДИЗАЙН
+					</div>
+					<div class="slider__text">
+						Ваш сайт будет выглядеть прекрасно на любом устройстве.
+					</div>	
+					<a data-fancybox data-src="#modal" href="javascript:;" class="slider__btn default-btn">
+						Оставить заявку
+					</a>
+				</div>
+			</div>				
+		</div>		
+	</div>
+</section>
+<section class="services">
+	<div class="container">
+		<div class="services__top">
+			<div class="services__title-box">
+				<div class="services__title">
+					Наши Услуги
+				</div>
+				<div class="services__text">
+					Комплексный подход к вашему вопросу, поддержка на всех этапах.
+				</div>
+			</div>
+			<div class="services__btn">
+				<a href="#">
+					Показать все услуги
+				</a>
+			</div>				
+		</div>
+		<div class="services__items">
+			<div class="services__item">
+				<img src="img/about_1.png" alt="">
+				<div class="services__item-title">
+					Сайт-визитка для Вашего бизнеса
+				</div>
+				<div class="services__item-text">
+					Современные реалии требуют быть представленным в сети интернет.
+				</div>
+				<div class="services__item-btn">					
+					<a class="services__item-link" href="#">Подробнее</a>
+					<a data-fancybox data-src="#modal" href="javascript:;" class="default-btn">
+						Заказать
+					</a>
+				</div>					
+			</div>
+			<div class="services__item">
+				<img src="img/about_2.png" alt="">
+				<div class="services__item-title">
+					Интернет-магазин
+				</div>
+				<div class="services__item-text">
+					Удобное приложение для онлайн-торговли с понятной, персонально настроенной панелью управления
+				</div>
+				<div class="services__item-btn">					
+					<a class="services__item-link" href="#">Подробнее</a>
+					<a data-fancybox data-src="#modal" href="javascript:;" class="default-btn">
+						Заказать
+					</a>
+				</div>					
+			</div>
+			<div class="services__item">
+				<img src="img/about_3.png" alt="">
+				<div class="services__item-title">
+					Персональное решение
+				</div>
+				<div class="services__item-text">
+					Дизайн и реализация вашего проекта
+				</div>
+				<div class="services__item-btn">					
+					<a class="services__item-link" href="#">Подробнее</a>
+					<a data-fancybox data-src="#modal" href="javascript:;" class="default-btn">
+						Заказать
+					</a>
+				</div>				
+			</div>
+		</div>
+	</div>
+</section>
+<section class="about">
+	<div class="container">
+		<div class="about__inner">
+			<div class="about__title">
+				О компании
+			</div>
+			<div class="about__text">
+				Компания занимается дизайном и разработкой веб-приложений. 
+			</div>
+			<a href="#" class="about__btn default-btn">
+				Узнать больше
+			</a>
+		</div>
+	</div>
+</section>
+
+<section>
+	<section class="form">
+		<div class="container">
+			<div class="form__inner">
+				<div class="form__content">
+					<div class="form__title-box">
+						<div class="form__title">
+							Получить консультацию
+						</div>
+						<div class="form__text">
+							Комплексный подход к вашему вопросу, поддержка на всех этапах.
+						</div>
+					</div>
+					<div class="form__box">
+						<form >
+							<div class="form__box-inner">
+								<div class="form__box-left">
+									<label >
+										E-mail
+										<input type="text">
+									</label>
+									<label >
+										Контактный телефон
+										<input type="text">
+									</label>
+									<label >
+										ФИО
+										<input type="text">
+									</label>
+									<label >
+										Тема вопроса
+										<select name="" id="">
+											<option>Дизайн</option>
+											<option>Разработка</option>
+											<option>Консультация</option>
+											<option>Поддержка</option>
+										</select>
+									</label>
+								</div>
+								<div class="form__box-right">
+									<label>
+										Сообщение
+										<textarea></textarea>
+									</label>
+									<button type="submit" class="default-btn">Получить консультацию</button>
+								</div>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</section>
+
+<section class="advantages">
+	<div class="container">
+		<div class="advantages__inner">
+			<div class="advantages-item">
+				<div class="advantages__title">
+					Большой спектр услуг
+				</div>
+				<div class="advantages__text">
+					Вы можете получить консультацию по большому спектру задач.
+				</div>
+			</div>
+			<div class="advantages-item">
+				<div class="advantages__title">
+					Своевременное исполнение
+				</div>
+				<div class="advantages__text">
+					Поддержка и необходимые правки, когда вам это нужно.
+				</div>
+			</div>
+			<div class="advantages-item">	
+				<div class="advantages__title">
+					Адекватные цены
+				</div>
+				<div class="advantages__text">
+					Качество соответсвует передовым технологиям сегодняшнего дня.
+				</div>
+			</div>
+		</div>
+	</div>
+</section> 
+<section class="news">
+	<div class="container">
+		<div class="news__top">
+			<div class="news__title-box">
+				<div class="news__title">
+					Новости компании
+				</div>
+				<div class="news__text">
+					Комплексный подход к вашему вопросу, поддержка на всех этапах.
+				</div>
+			</div>
+			<div class="news__btn">
+				<a href="#">
+					Открыть все новости
+				</a>
+			</div>				
+		</div>
+		<div class="news__inner">
+			<div class="news__slider">
+				<div class="news__slider-inner">
+					<div class="news__slider-item">
+						<div class="news__slider-title">
+							Все в онлайне
+						</div>
+						<div class="news__slider-text">
+							Многие люди до коронавируса понимали, что бизнес должен быть предствавлен в онлайне. После коронавируса это поняли все.
+						</div>
+						<div class="news__slider-author">
+							Константин Синичкин 
+						</div>
+					</div>
+					<div class="news__slider-item">
+						<div class="news__slider-title">
+							Что такое Django
+						</div>
+						<div class="news__slider-text">
+							Django - это инструмент, которому доверяют такие компании, как Instagram, Google, Dropbox и другие.
+						</div>
+						<div class="news__slider-author">
+							Константин Синичкин
+						</div>
+					</div>
+					<div class="news__slider-item">
+						<div class="news__slider-title">
+							Сайты для бизнеса
+						</div>
+						<div class="news__slider-text">
+							Сайт под любые задачи бизнеса. Индивидуальный дизайн. Новости, акции, каталог, отзывы, статьи, соц.сети, партнеры и многое другое. 
+						</div>
+						<div class="news__slider-author">
+							Константин Синичкин 
+						</div>
+					</div>
+				</div>
+			</div>
+			<a href="#" class="news__blog">
+				<div class="news__images">
+					<img src="img/news-1.jpg" alt="">
+					<div class="news__date">03.04</div>
+				</div>
+				<div class="news__blog-title">
+					Новость компании
+				</div>
+				<div class="news__blog-text">
+					На сегодняшний день у нас есть возможность создания веб-приложений на фреймфорке Django. Django - это инструмент, которому доверяют такие компании, как Instagram, Google, Dropbox и другие. 
+				</div>
+			</a>
+			<a href="#" class="news__blog">
+				<div class="news__images">
+					<img src="img/news-2.jpg" alt="">
+					<div class="news__date">03.04</div>
+				</div>
+				<div class="news__blog-title">
+					Новость компании
+				</div>
+				<div class="news__blog-text">
+					На сегодняшний день у нас есть возможность создания веб-приложений на фреймфорке Django. Django - это инструмент, которому доверяют такие компании, как Instagram, Google, Dropbox и другие. 
+				</div>
+			</a>
+		</div>
+	</div>
+</section>
+
+<footer class="footer">
+	<div class="footer__content">
+		<div class="container">
+			<div class="footer__inner">
+				<div class="footer__info">
+					<div class="footer__title">
+						Разработка сайтов	
+					</div>
+					<div class="footer__text">Дизайн, разработка, верстка.</div>
+					<a data-fancybox data-src="#modal" href="javascript:;"class="header__btn" href="#">Бесплатная консультация
+					</a>
+					<ul class="footer__list">
+						<li><a class="footer__phone" href="tel:+79600925814">+7(960)0925814</a></li>
+						<li><a href="#">konsntainsinichin1@gmail.com</a></li>
+						<li><a class="footer__address" href="#">г. Звенигово</a></li>
+					</ul>
+				</div>
+				<div class="footer__map">
+					<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2232.310995163261!2d48.01129901593937!3d55.9786410806143!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x415bdae5c9d80541%3A0x6cfdcba5c2c6bdb4!2z0J_QuNC-0L3QtdGA0YHQutCw0Y8g0YPQuy4sIDUsINCX0LLQtdC90LjQs9C-0LLQviwg0KDQtdGB0L8uINCc0LDRgNC40Lkg0K3QuywgNDI1MDYx!5e0!3m2!1sru!2sru!4v1592818047115!5m2!1sru!2sru" frameborder="0" style="border:0;" height="250px" allowfullscreen="" aria-hidden="false" tabindex="0"></iframe>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="footer__copy">
+		<div class="copy__text">
+			©2020. Konstantin Sinichkin. Template by Anastasia Shaposhnyk. 
+		</div>
+	</div>
+</footer> 
+
+<div id="modal">
+	<form>
+		<input type="text" placeholder="Ваше имя">
+		<input type="text" placeholder="Телефон">
+		<input type="submit" placeholder="Отправить" value="Отправить">
+	</form>
+</div>
+
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	<script src="js/jquery.fancybox.min.js"></script>
+	<script src="js/slick.min.js"></script>
+	<script src="js/jquery.formstyler.min.js"></script>
+	<script src="js/main.js"></script>
+</body>
+
+</html>
