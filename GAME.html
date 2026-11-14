@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Table Tennis</title>
+<style>
+  :root{
+    --bg:#0a0e13; --panel:#111823; --line:#1e2937;
+    --txt:#e3eaf2; --dim:#7f8fa3; --red:#ff5a3c; --grn:#38d39f; --org:#ffa54d;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+  .wrap{max-width:1000px;margin:0 auto;padding:16px 14px 40px;}
+  h1{font-size:18px;font-weight:650;margin:0 0 4px;letter-spacing:.2px}
+  .sub{font-size:12.5px;color:var(--dim);margin:0 0 12px;line-height:1.5}
+  #game{display:block;border-radius:14px;background:var(--panel);
+    border:1px solid var(--line);width:100%;height:auto;cursor:crosshair;touch-action:none;}
+  .mode-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+  .mode-btn{background:#1b2635;color:var(--dim);border:1px solid var(--line);
+    border-radius:9px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;
+    font-family:inherit;letter-spacing:.3px;transition:all .15s}
+  .mode-btn:hover{background:#243042;color:var(--txt)}
+  .mode-btn.on{background:var(--red);border-color:var(--red);color:#fff}
+  .env-group{margin-left:auto;display:flex;gap:4px}
+  .env-btn{width:38px;height:38px;border-radius:50%;background:#1b2635;
+    border:1px solid var(--line);font-size:16px;cursor:pointer;padding:0;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .15s;filter:grayscale(0.5);opacity:0.7}
+  .env-btn:hover{background:#243042;filter:grayscale(0);opacity:1}
+  .env-btn.on{background:var(--red);border-color:var(--red);filter:grayscale(0);opacity:1;
+    box-shadow:0 0 12px rgba(255,90,60,0.5)}
+  .readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:8px;margin-top:10px}
+  .rd{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:8px 10px;font-size:11px;color:var(--dim);transition:border-color .2s,background .2s}
+  .rd b{display:block;font-size:13.5px;color:var(--txt);font-weight:600;margin-top:3px;
+    font-variant-numeric:tabular-nums}
+  .rd.flash{animation:fl .5s}
+  .rd.good b{color:var(--grn)}
+  .rd.miss b{color:var(--red)}
+  @keyframes fl{0%{background:rgba(255,90,60,.18);border-color:var(--red)}
+                100%{background:var(--panel);border-color:var(--line)}}
+  .scoreboard{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;
+    background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;
+    padding:14px 20px;margin-bottom:14px}
+  .score-team{text-align:center}
+  .score-team .name{font-size:12px;color:var(--dim);letter-spacing:.4px;
+    text-transform:uppercase;margin-bottom:4px}
+  .score-team .score{font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;
+    line-height:1}
+  .score-team.player .score{color:var(--grn)}
+  .score-team.bot .score{color:var(--red)}
+  .score-team.serving .name::before{content:'● ';color:var(--org);font-size:14px;
+    display:inline-block;margin-right:2px}
+  .score-mid{text-align:center;font-size:11px;color:var(--dim);line-height:1.5;min-width:120px}
+  .score-mid b{color:var(--txt);display:block;font-size:11px;margin-bottom:3px;
+    letter-spacing:.3px;text-transform:uppercase}
+  .panel{margin-top:14px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:14px 16px}
+  .panel h2{font-size:12px;font-weight:600;margin:0 0 10px;color:var(--dim);
+    letter-spacing:.5px;text-transform:uppercase}
+  .bot-grid{display:flex;flex-wrap:wrap;gap:8px}
+  .bot-btn{background:#1b2635;color:var(--txt);border:1px solid var(--line);border-radius:9px;
+    padding:8px 12px;font-size:12.5px;cursor:pointer;font-family:inherit;
+    display:flex;align-items:center;gap:6px;transition:all .15s}
+  .bot-btn:hover{background:#243042}
+  .bot-btn.on{background:var(--red);border-color:var(--red);color:#fff}
+  .bot-btn .emo{font-size:15px}
+  .bot-desc{font-size:12.5px;color:var(--dim);line-height:1.55;
+    padding:10px 12px;background:rgba(255,90,60,.06);border-radius:8px;
+    border-left:3px solid var(--red);margin-top:12px}
+  .bot-desc b{color:var(--txt);font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:10px 18px}
+  .ctrl label{display:flex;justify-content:space-between;font-size:11.5px;
+    color:var(--dim);margin-bottom:5px;letter-spacing:.2px}
+  .ctrl label b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:4px;
+    border-radius:4px;background:#243042;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;
+    border-radius:50%;background:var(--red);cursor:pointer;border:2px solid #0a0e13;
+    box-shadow:0 0 0 1px var(--red)}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;
+    background:var(--red);cursor:pointer;border:2px solid #0a0e13}
+  .toggles{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;align-items:center;
+    padding-top:12px;border-top:1px solid var(--line)}
+  .toggles label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim);
+    cursor:pointer;user-select:none}
+  .toggles input[type=checkbox]{accent-color:var(--red);width:15px;height:15px;cursor:pointer}
+  .divider{width:1px;height:22px;background:var(--line);margin:0 4px}
+  .slowmo-btn{background:#1b2635;color:var(--txt);border:1px solid var(--line);
+    border-radius:6px;padding:4px 11px;font-size:11.5px;cursor:pointer;font-family:inherit;
+    font-variant-numeric:tabular-nums}
+  .slowmo-btn:hover{background:#243042}
+  .slowmo-btn.on{background:var(--red);border-color:var(--red);color:#fff}
+  .btn{background:#1b2635;color:var(--txt);border:1px solid var(--line);
+    border-radius:9px;padding:7px 14px;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .btn:hover{background:#243042}
+  .row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+  .hint{font-size:11.5px;color:var(--dim);margin-top:8px;line-height:1.5;
+    padding:8px 12px;background:rgba(56,211,159,.06);border-radius:8px;
+    border-left:3px solid var(--grn)}
+  .hint b{color:var(--grn);font-weight:600}
+  body.mode-serve .machine-only, body.mode-serve .bot-only{display:none}
+  body.mode-machine .serve-only, body.mode-machine .bot-only{display:none}
+  body.mode-bot .serve-only, body.mode-bot .machine-only{display:none}
+</style>
+</head>
+<body class="mode-serve">
+<div class="wrap">
+  <h1>Table Tennis</h1>
+  <p class="sub">Hit control: swipe direction → aim · swipe speed → power · swipe curvature → sidespin · start point sets incoming fall speed.</p>
+
+  <div class="mode-bar">
+    <button class="mode-btn on" data-mode="serve">Serve Practice</button>
+    <button class="mode-btn" data-mode="machine">Machine Practice</button>
+    <button class="mode-btn" data-mode="bot">Play vs Bot</button>
+    <div class="env-group">
+      <button class="env-btn" data-env="chinese" title="Chinese basement">🇨🇳</button>
+      <button class="env-btn" data-env="olympic" title="Olympic hall">🏆</button>
+      <button class="env-btn on" data-env="clean" title="Standard">⚫</button>
+    </div>
+  </div>
+
+  <div class="scoreboard bot-only" style="display:none" id="scoreboard">
+    <div class="score-team player" id="score-player">
+      <div class="name">You</div>
+      <div class="score" id="player-score">0</div>
+    </div>
+    <div class="score-mid">
+      <b id="serve-indicator">serve: you</b>
+      <span id="rally-status">—</span>
+    </div>
+    <div class="score-team bot" id="score-bot">
+      <div class="name" id="bot-name-disp">Smart Bot</div>
+      <div class="score" id="bot-score">0</div>
+    </div>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <div class="readouts">
+    <div class="rd" id="rd-speed">Exit Speed<b id="r-vout">—</b></div>
+    <div class="rd" id="rd-spin">Spin<b id="r-om">—</b></div>
+    <div class="rd" id="rd-type">Shot Type<b id="r-type">—</b></div>
+    <div class="rd" id="rd-fall">Ball Fall<b id="r-fall">—</b></div>
+  </div>
+
+  <div class="panel serve-only">
+    <h2>Serve Practice</h2>
+    <div class="hint">
+      <b>Start point</b> → fall speed: over the table = 0, in the green zone = <b>1.9 … 5.1 m/s</b>, further back = 5.1.<br>
+      <b>End point</b> → launch position. Over the table = snapped to the edge. No illegal serves.
+    </div>
+    <div class="row">
+      <button class="btn" id="reset-serve">↻ Reset</button>
+    </div>
+  </div>
+
+  <div class="panel machine-only">
+    <h2>Machine Practice</h2>
+    <div class="row" id="machine-shot-types"></div>
+    <div class="row" id="machine-patterns"></div>
+    <div class="row" style="align-items:center">
+      <button class="btn" id="machine-fire">▶ Fire ball</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim);cursor:pointer">
+        <input type="checkbox" id="machine-auto" style="accent-color:var(--grn);width:15px;height:15px">
+        Auto-serve
+      </label>
+      <button class="btn" id="reset-machine">↻ Reset</button>
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div class="ctrl">
+        <label>Serve speed <b id="lbl-mach-speed">1.0×</b></label>
+        <input type="range" id="mach-speed" min="0.5" max="2" step="0.05" value="1">
+      </div>
+      <div class="ctrl">
+        <label>Serve spin <b id="lbl-mach-spin">1.0×</b></label>
+        <input type="range" id="mach-spin" min="0" max="2.5" step="0.05" value="1">
+      </div>
+      <div class="ctrl">
+        <label>Auto-serve interval <b id="lbl-mach-interval">2.5 s</b></label>
+        <input type="range" id="mach-interval" min="1" max="6" step="0.1" value="2.5">
+      </div>
+    </div>
+  </div>
+
+  <div class="panel bot-only">
+    <h2>Play vs Bot</h2>
+    <div class="bot-grid" id="bot-grid"></div>
+    <div class="bot-desc" id="bot-desc">—</div>
+    <div class="row">
+      <button class="btn" id="reset-bot">↻ New match</button>
+    </div>
+    <div class="hint" style="background:rgba(255,90,60,.06);border-left-color:var(--red)">
+      <b>Rules:</b> first to 11, win by 2. Serve changes every 2 points. At 10:10 — every point. If your shot lands on your own half — point to bot.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Control Settings</h2>
+    <div class="grid" id="settings-grid"></div>
+    <div class="toggles">
+      <label><input type="checkbox" id="t-net" checked> Net</label>
+      <label><input type="checkbox" id="t-trail"> Trajectory</label>
+      <label><input type="checkbox" id="t-sound" checked> Sound</label>
+      <label><input type="checkbox" id="t-zone"> Green zone</label>
+      <span class="divider"></span>
+      <span style="font-size:12px;color:var(--dim)">Slow-mo:</span>
+      <button class="slowmo-btn" data-s="1">1×</button>
+      <button class="slowmo-btn on" data-s="0.5">½×</button>
+      <button class="slowmo-btn" data-s="0.25">¼×</button>
+      <button class="slowmo-btn" data-s="0.1">0.1×</button>
+      <button class="slowmo-btn" data-s="0.04">0.04×</button>
+    </div>
+    <div style="margin-top:10px">
+      <button class="btn" id="reset-settings">↻ Reset settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   MODES, ENV, SETTINGS
+   ============================================================ */
+const MODE = { SERVE:'serve', MACHINE:'machine', BOT:'bot' };
+const ENV  = { CHINESE:'chinese', OLYMPIC:'olympic', CLEAN:'clean' };
+let mode = MODE.SERVE;
+let currentEnv = ENV.CLEAN;
+
+const defaults = {
+  V_REF:3000, V_FORWARD:5.0, V_UP:4.0, V_SIDE:4.0, V_BASE:1.2,
+  curvBoost:2.0, restitution:0.85, friction:0.9, racketMass:0.15,
+  gravity:9.81, scale:220,
+  showNet:true, showTrail:false, soundOn:true, showZone:false,
+};
+const settings = {...defaults};
+
+const FPHYS = { rho:1.2, Cd:0.4, Cm:0.3, eBounce:0.85, eFloor:0.12 };
+function G(){ return settings.gravity; }
+
+const BALL  = { r:0.02, m:0.0027 };
+const TABLE = { l:2.74, w:1.525, h:0.76 };
+const NET_H = 0.1525;
+const TAU = Math.PI*2;
+const SERVE_HEIGHT = TABLE.h + 0.30;
+const GREEN_ZONE_FAR = -1.2;
+
+const NET = { x: TABLE.l/2, y0: TABLE.h, y1: TABLE.h+NET_H, z0:-TABLE.w/2, z1:TABLE.w/2 };
+const BOT_POS = [TABLE.l + 0.10, TABLE.h + 0.30, 0];
+const PLAY_X_MIN = -0.60, PLAY_X_MAX = 0.50, PLAY_SWEET_HALF = 0.50;
+
+/* ============================================================
+   CANVAS & PROJECTION
+   ============================================================ */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = 940, H = 700;
+const dpr = Math.min(2, window.devicePixelRatio || 1);
+canvas.width = W*dpr; canvas.height = H*dpr;
+canvas.style.width = W+'px'; canvas.style.height = H+'px';
+canvas.style.maxWidth = '100%';
+ctx.setTransform(dpr,0,0,dpr,0,0);
+
+const CX = W/2, CY = H*0.93, TILT = 0.55;
+
+function project(p){
+  const depth = 1/(1+p[0]*0.2);
+  return [CX + p[2]*settings.scale*depth,
+          CY - p[0]*settings.scale*TILT - p[1]*settings.scale*depth];
+}
+function depthAt(x){ return 1/(1+x*0.2); }
+function ballDrawR(x){ return 12 + 7*depthAt(x); }
+
+function screenXToWorldZ(mouseX, atX){
+  const depth = depthAt(atX);
+  return Math.max(-0.9, Math.min(0.9, (mouseX - CX)/(settings.scale*depth)));
+}
+function screenYToWorldX(mouseY){
+  const S = settings.scale, T = TILT;
+  let x = (CY - mouseY)/(S*T);
+  x = Math.max(-1.2, Math.min(1.0, x));
+  for (let i = 0; i < 6; i++){
+    const depth = 1/(1+x*0.2);
+    const xNew = (CY - mouseY - SERVE_HEIGHT*S*depth)/(S*T);
+    x = Math.max(-1.2, Math.min(1.0, xNew));
+  }
+  return x;
+}
+
+/* ============================================================
+   ROTATION
+   ============================================================ */
+function matIdent(){ return [1,0,0, 0,1,0, 0,0,1]; }
+function matMul(A, B){
+  const C = new Array(9);
+  for (let i=0;i<3;i++) for (let j=0;j<3;j++){
+    let s=0; for (let k=0;k<3;k++) s += A[i*3+k]*B[k*3+j];
+    C[i*3+j]=s;
+  }
+  return C;
+}
+function matRot(axis, angle){
+  const [ax,ay,az]=axis;
+  const c=Math.cos(angle), s=Math.sin(angle), t=1-c;
+  return [t*ax*ax+c, t*ax*ay-s*az, t*ax*az+s*ay,
+          t*ax*ay+s*az, t*ay*ay+c, t*ay*az-s*ax,
+          t*ax*az-s*ay, t*ay*az+s*ax, t*az*az+c];
+}
+function matApply(M,v){
+  return [M[0]*v[0]+M[1]*v[1]+M[2]*v[2],
+          M[3]*v[0]+M[4]*v[1]+M[5]*v[2],
+          M[6]*v[0]+M[7]*v[1]+M[8]*v[2]];
+}
+const SURFACE_POINTS = (() => {
+  const pts=[]; const N=14; const phi=Math.PI*(3-Math.sqrt(5));
+  for (let i=0;i<N;i++){
+    const y=1-(i/(N-1))*2;
+    const r=Math.sqrt(Math.max(0,1-y*y));
+    const th=phi*i;
+    pts.push([Math.cos(th)*r, y, Math.sin(th)*r]);
+  }
+  return pts;
+})();
+const POINT_COLORS = ['#ff5a3c','#4da3ff','#38d39f','#ffa54d','#c17aff','#50d8e0',
+  '#ff5a3c','#4da3ff','#38d39f','#ffa54d','#c17aff','#50d8e0','#ff5a3c','#4da3ff'];
+
+/* ============================================================
+   AUDIO
+   ============================================================ */
+let audioCtx = null;
+function ensureAudio(){
+  if (!audioCtx){
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playPlayerHit(speed){
+  if (!settings.soundOn || !audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const vol = Math.min(0.28, 0.06 + speed*0.025);
+    const nlen = Math.floor(audioCtx.sampleRate*0.028);
+    const nb = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd = nb.getChannelData(0);
+    for (let i=0;i<nlen;i++) nd[i] = (Math.random()*2-1)*Math.pow(1-i/nlen, 9);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = nb;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type='bandpass'; bp.frequency.value = 2600 + speed*55; bp.Q.value = 1.6;
+    const ng = audioCtx.createGain(); ng.gain.value = vol;
+    noise.connect(bp).connect(ng).connect(audioCtx.destination);
+    noise.start(t);
+    const o = audioCtx.createOscillator();
+    o.type='sine';
+    o.frequency.setValueAtTime(880 + speed*15, t);
+    o.frequency.exponentialRampToValueAtTime(420, t+0.045);
+    const og = audioCtx.createGain();
+    og.gain.setValueAtTime(vol*0.55, t);
+    og.gain.exponentialRampToValueAtTime(0.001, t+0.07);
+    o.connect(og).connect(audioCtx.destination);
+    o.start(t); o.stop(t+0.08);
+  } catch(e){}
+}
+function playBotHit(speed){
+  if (!settings.soundOn || !audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const vol = Math.min(0.24, 0.05 + speed*0.020);
+    const nlen = Math.floor(audioCtx.sampleRate*0.024);
+    const nb = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd = nb.getChannelData(0);
+    for (let i=0;i<nlen;i++) nd[i] = (Math.random()*2-1)*Math.pow(1-i/nlen, 7);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = nb;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type='bandpass'; bp.frequency.value = 1900; bp.Q.value = 2.0;
+    const ng = audioCtx.createGain(); ng.gain.value = vol;
+    noise.connect(bp).connect(ng).connect(audioCtx.destination);
+    noise.start(t);
+    const o = audioCtx.createOscillator();
+    o.type='triangle';
+    o.frequency.setValueAtTime(620, t);
+    o.frequency.exponentialRampToValueAtTime(340, t+0.05);
+    const og = audioCtx.createGain();
+    og.gain.setValueAtTime(vol*0.5, t);
+    og.gain.exponentialRampToValueAtTime(0.001, t+0.08);
+    o.connect(og).connect(audioCtx.destination);
+    o.start(t); o.stop(t+0.09);
+  } catch(e){}
+}
+function playBotServe(){
+  if (!settings.soundOn || !audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(240, t);
+    o.frequency.exponentialRampToValueAtTime(100, t+0.06);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.10, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t+0.09);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t); o.stop(t+0.10);
+    const nlen = Math.floor(audioCtx.sampleRate*0.014);
+    const nb = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd = nb.getChannelData(0);
+    for (let i=0;i<nlen;i++) nd[i] = (Math.random()*2-1)*Math.pow(1-i/nlen, 5);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = nb;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type='bandpass'; bp.frequency.value = 2200; bp.Q.value = 1.5;
+    const ng = audioCtx.createGain(); ng.gain.value = 0.05;
+    noise.connect(bp).connect(ng).connect(audioCtx.destination);
+    noise.start(t);
+  } catch(e){}
+}
+function playTableBounce(intensity){
+  if (!settings.soundOn || !audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const vol = Math.min(0.20, 0.04 + intensity*0.07);
+    const nlen = Math.floor(audioCtx.sampleRate*0.014);
+    const nb = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd = nb.getChannelData(0);
+    for (let i=0;i<nlen;i++) nd[i] = (Math.random()*2-1)*Math.pow(1-i/nlen, 6);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = nb;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type='bandpass'; bp.frequency.value = 3800; bp.Q.value = 1.0;
+    const ng = audioCtx.createGain(); ng.gain.value = vol;
+    noise.connect(bp).connect(ng).connect(audioCtx.destination);
+    noise.start(t);
+    const o = audioCtx.createOscillator();
+    o.type='sine';
+    o.frequency.setValueAtTime(620, t);
+    o.frequency.exponentialRampToValueAtTime(300, t+0.03);
+    const og = audioCtx.createGain();
+    og.gain.setValueAtTime(vol*0.5, t);
+    og.gain.exponentialRampToValueAtTime(0.001, t+0.04);
+    o.connect(og).connect(audioCtx.destination);
+    o.start(t); o.stop(t+0.05);
+  } catch(e){}
+}
+function playFloorBounce(intensity){
+  if (!settings.soundOn || !audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const vol = Math.min(0.16, 0.04 + intensity*0.05);
+    const o = audioCtx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(140, t);
+    o.frequency.exponentialRampToValueAtTime(55, t+0.10);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t+0.13);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t); o.stop(t+0.14);
+    const nlen = Math.floor(audioCtx.sampleRate*0.04);
+    const nb = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd = nb.getChannelData(0);
+    for (let i=0;i<nlen;i++) nd[i] = (Math.random()*2-1)*Math.pow(1-i/nlen, 3);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = nb;
+    const lp = audioCtx.createBiquadFilter();
+    lp.type='lowpass'; lp.frequency.value = 500;
+    const ng = audioCtx.createGain(); ng.gain.value = vol*0.4;
+    noise.connect(lp).connect(ng).connect(audioCtx.destination);
+    noise.start(t);
+  } catch(e){}
+}
+function playWallBounce(){
+  if (!settings.soundOn || !audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(260, t);
+    o.frequency.exponentialRampToValueAtTime(110, t+0.06);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.08, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t+0.09);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t); o.stop(t+0.10);
+    const nlen = Math.floor(audioCtx.sampleRate*0.03);
+    const nb = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd = nb.getChannelData(0);
+    for (let i=0;i<nlen;i++) nd[i] = (Math.random()*2-1)*Math.pow(1-i/nlen, 4);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = nb;
+    const lp = audioCtx.createBiquadFilter();
+    lp.type='lowpass'; lp.frequency.value = 900;
+    const ng = audioCtx.createGain(); ng.gain.value = 0.06;
+    noise.connect(lp).connect(ng).connect(audioCtx.destination);
+    noise.start(t);
+  } catch(e){}
+}
+function playNetHit(){
+  if (!settings.soundOn || !audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const nlen = Math.floor(audioCtx.sampleRate*0.06);
+    const nb = audioCtx.createBuffer(1, nlen, audioCtx.sampleRate);
+    const nd = nb.getChannelData(0);
+    for (let i=0;i<nlen;i++) nd[i] = (Math.random()*2-1)*Math.pow(1-i/nlen, 4);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = nb;
+    const lp = audioCtx.createBiquadFilter();
+    lp.type='lowpass'; lp.frequency.value = 700; lp.Q.value = 0.8;
+    const ng = audioCtx.createGain(); ng.gain.value = 0.14;
+    noise.connect(lp).connect(ng).connect(audioCtx.destination);
+    noise.start(t);
+    const o = audioCtx.createOscillator();
+    o.type='sine';
+    o.frequency.setValueAtTime(160, t);
+    o.frequency.exponentialRampToValueAtTime(80, t+0.08);
+    const og = audioCtx.createGain();
+    og.gain.setValueAtTime(0.10, t);
+    og.gain.exponentialRampToValueAtTime(0.001, t+0.1);
+    o.connect(og).connect(audioCtx.destination);
+    o.start(t); o.stop(t+0.11);
+  } catch(e){}
+}
+function playMachine(){
+  if (!settings.soundOn || !audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    o.type = 'square';
+    o.frequency.setValueAtTime(180, t);
+    o.frequency.exponentialRampToValueAtTime(90, t+0.05);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.06, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t+0.06);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t); o.stop(t+0.07);
+  } catch(e){}
+}
+
+/* ============================================================
+   CONTACT & FLIGHT
+   ============================================================ */
+function computeContact(vin, omIn, n, Vr){
+  const m = BALL.m, R = BALL.r, I = (2/3)*m*R*R;
+  const e = settings.restitution, mu = settings.friction;
+  const M_eff = settings.racketMass;
+  const rc = [-R*n[0], -R*n[1], -R*n[2]];
+  const vc = [
+    vin[0] + omIn[1]*rc[2] - omIn[2]*rc[1],
+    vin[1] + omIn[2]*rc[0] - omIn[0]*rc[2],
+    vin[2] + omIn[0]*rc[1] - omIn[1]*rc[0],
+  ];
+  const u = [vc[0]-Vr[0], vc[1]-Vr[1], vc[2]-Vr[2]];
+  const un = u[0]*n[0] + u[1]*n[1] + u[2]*n[2];
+  if (un > 0) return { hit:false };
+  const mu_r = m*M_eff/(m+M_eff);
+  const Jn = (1+e)*mu_r*Math.abs(un);
+  const ut = [u[0]-un*n[0], u[1]-un*n[1], u[2]-un*n[2]];
+  const utm = Math.hypot(ut[0], ut[1], ut[2]);
+  let Jt = [0,0,0];
+  if (utm > 1e-6){
+    const uh = [ut[0]/utm, ut[1]/utm, ut[2]/utm];
+    const Jt_stick = (2/5)*m*utm;
+    const Jt_max = mu*Jn;
+    const Jt_mag = Math.min(Jt_stick, Jt_max);
+    Jt = [-Jt_mag*uh[0], -Jt_mag*uh[1], -Jt_mag*uh[2]];
+  }
+  const v_out = [
+    vin[0] + (Jn*n[0]+Jt[0])/m,
+    vin[1] + (Jn*n[1]+Jt[1])/m,
+    vin[2] + (Jn*n[2]+Jt[2])/m,
+  ];
+  const dOm = [
+    (rc[1]*Jt[2]-rc[2]*Jt[1])/I,
+    (rc[2]*Jt[0]-rc[0]*Jt[2])/I,
+    (rc[0]*Jt[1]-rc[1]*Jt[0])/I,
+  ];
+  return { hit:true, v_out, om_out:dOm, Jn, Jt_mag:Math.hypot(...Jt) };
+}
+
+function simulateFlight(pos, vel, spin){
+  const dt = 0.0008;
+  const m = BALL.m, R = BALL.r;
+  const A = Math.PI*R*R;
+  let p = pos.slice(), v = vel.slice(), w = spin.slice();
+  const traj = [{ p:p.slice(), v:v.slice(), w:w.slice(), t:0 }];
+  const events = [];
+  let t = 0, bc = 0, netHit = false;
+  const prevP = p.slice();
+
+  for (let step=0; step<5000; step++){
+    const vmag = Math.hypot(v[0], v[1], v[2]);
+    if (vmag < 0.05) break;
+    prevP[0]=p[0]; prevP[1]=p[1]; prevP[2]=p[2];
+    const kd = 0.5*FPHYS.rho*A*FPHYS.Cd*vmag/m;
+    let ax = -kd*v[0], ay = -kd*v[1] - G(), az = -kd*v[2];
+    const kM = 0.5*FPHYS.rho*A*R*FPHYS.Cm/m;
+    ax += kM*(w[1]*v[2]-w[2]*v[1]);
+    ay += kM*(w[2]*v[0]-w[0]*v[2]);
+    az += kM*(w[0]*v[1]-w[1]*v[0]);
+    v[0] += ax*dt; v[1] += ay*dt; v[2] += az*dt;
+    p[0] += v[0]*dt; p[1] += v[1]*dt; p[2] += v[2]*dt;
+    const dec = 1 - 0.06*dt;
+    w[0] *= dec; w[1] *= dec; w[2] *= dec;
+    t += dt;
+
+    if (!netHit && settings.showNet){
+      const crossed = (prevP[0]-NET.x)*(p[0]-NET.x) < 0;
+      if (crossed){
+        const zOK = Math.abs(p[2]) < NET.z1 + 0.02;
+        const low = (p[1]-R) < NET.y1;
+        const high = (p[1]+R) > NET.y0;
+        if (zOK && low && high){
+          p[0] = prevP[0] < NET.x ? NET.x-R-0.002 : NET.x+R+0.002;
+          v[0] = -v[0]*0.06;
+          if (v[1] > 0) v[1] *= 0.25;
+          v[2] *= 0.15;
+          w[0] *= 0.4; w[1] *= 0.4; w[2] *= 0.4;
+          netHit = true;
+          events.push({ type:'net', t });
+          traj.push({ p:p.slice(), v:v.slice(), w:w.slice(), t, netHit:true });
+          continue;
+        }
+      }
+    }
+
+    const crossedTableY = prevP[1] >= TABLE.h+R && p[1] < TABLE.h+R && v[1] < 0;
+    if (crossedTableY){
+      const denom = prevP[1] - p[1];
+      const alpha = denom > 1e-9 ? (prevP[1] - (TABLE.h+R))/denom : 0;
+      const xAt = prevP[0] + alpha*(p[0]-prevP[0]);
+      const zAt = prevP[2] + alpha*(p[2]-prevP[2]);
+      const onTable = xAt >= 0 && xAt <= TABLE.l && Math.abs(zAt) <= TABLE.w/2 + 0.02;
+      if (onTable){
+        p[0]=xAt; p[1]=TABLE.h+R; p[2]=zAt;
+        const side = xAt < TABLE.l/2 ? 'player' : 'bot';
+        events.push({ type:'bounce', side, x:xAt, z:zAt, t });
+        v[0] += -w[2]*0.005;
+        v[1] = -v[1]*FPHYS.eBounce;
+        v[0] *= 0.92; v[2] *= 0.92;
+        w[0] *= 0.8; w[1] *= 0.8; w[2] *= 0.8;
+        bc++;
+        if (bc > 3){ traj.push({ p:p.slice(), v:v.slice(), w:w.slice(), t }); break; }
+      }
+    }
+
+    if (p[1] < R && v[1] < 0){
+      p[1] = R;
+      events.push({ type:'floor', x:p[0], z:p[2], t });
+      v[1] = -v[1]*FPHYS.eFloor;
+      v[0] *= 0.4; v[2] *= 0.4;
+      w[0] *= 0.3; w[1] *= 0.3; w[2] *= 0.3;
+      traj.push({ p:p.slice(), v:v.slice(), w:w.slice(), t });
+      break;
+    }
+
+    traj.push({ p:p.slice(), v:v.slice(), w:w.slice(), t });
+
+    if (p[0] > 5.5 || p[0] < -3 || Math.abs(p[2]) > 4){
+      events.push({ type:'wall', x:p[0], z:p[2], t });
+      break;
+    }
+  }
+  return { traj, events, netHit };
+}
+
+/* ============================================================
+   BALL
+   ============================================================ */
+let ballIdCounter = 0;
+function createBall({ pos, vel, spin, lastHitter, isServe, trajResult }){
+  return {
+    id: ++ballIdCounter,
+    pos: pos.slice(), vel: vel.slice(), spin: spin.slice(),
+    lastHitter, isServe: !!isServe,
+    traj: trajResult.traj, events: trajResult.events,
+    netHit: !!trajResult.netHit,
+    virtTime: 0, idx: 0, nextEvent: 0,
+    orientation: matIdent(),
+    active: true, netHitTouched: false,
+    bouncesOnPlayer: 0, bouncesOnBot: 0,
+  };
+}
+const balls = [];
+
+/* ============================================================
+   MACHINE: presets & patterns
+   ============================================================ */
+const MACHINE_SHOT_PRESETS = {
+  topspin:   { name: 'Topspin',    v:[-4.0, 2.8, 0], s:[0, 0, 350] },
+  backspin:  { name: 'Backspin',   v:[-3.6, 2.6, 0], s:[0, 0, -250] },
+  sidespinL: { name: 'Sidespin ←', v:[-4.0, 2.7, 0], s:[0, 400, 0] },
+  sidespinR: { name: 'Sidespin →', v:[-4.0, 2.7, 0], s:[0, -400, 0] },
+  flat:      { name: 'Flat',       v:[-5.0, 2.5, 0], s:[0, 0, 0] },
+  lob:       { name: 'Lob',        v:[-2.5, 4.5, 0], s:[0, 0, -150] },
+};
+let currentMachineShot = 'topspin';
+
+const MACHINE_PATTERNS = {
+  center: { name: 'Center',   generate: () => ({ z: 0, vz: 0 }) },
+  zigzag: { name: 'Zigzag',   generate: (state) => {
+    state.side = state.side ? 0 : 1;
+    const z = state.side ? 0.35 : -0.35;
+    return { z, vz: -z * 0.5 };
+  }},
+  cross:  { name: 'Cross',    generate: (state) => {
+    state.side = state.side ? 0 : 1;
+    const z = state.side ? 0.55 : -0.55;
+    return { z, vz: -z * 1.2 };
+  }},
+  random: { name: 'Random',   generate: () => ({
+    z: (Math.random() - 0.5) * 1.0,
+    vz: (Math.random() - 0.5) * 1.2,
+  })},
+  mix:    { name: 'Mix',      generate: () => {
+    const keys = Object.keys(MACHINE_SHOT_PRESETS);
+    const k = keys[Math.floor(Math.random() * keys.length)];
+    return {
+      z: (Math.random() - 0.5) * 1.0,
+      vz: (Math.random() - 0.5) * 1.2,
+      preset: MACHINE_SHOT_PRESETS[k],
+    };
+  }},
+};
+let currentMachinePattern = 'center';
+const machinePatternState = { side: 1 };
+
+let machineSpeedMul = 1.0;
+let machineSpinMul = 1.0;
+let machineInterval = 2.5;
+
+/* ============================================================
+   BALL HOLDER — small sphere at bottom (nothing else)
+   ============================================================ */
+function getFallSpeedFromStartX(startX){
+  if (startX >= 0) return 0;
+  if (startX >= GREEN_ZONE_FAR){
+    return 1.9 + (-startX/Math.abs(GREEN_ZONE_FAR))*(5.1 - 1.9);
+  }
+  return 5.1;
+}
+function computeServeParams(gesture){
+  let launchX = screenYToWorldX(gesture.endScreenY);
+  const launchZ = screenXToWorldZ(gesture.endScreenX, launchX);
+  const startX  = screenYToWorldX(gesture.startScreenY);
+  const fallSpeed = getFallSpeedFromStartX(startX);
+  if (launchX >= 0) launchX = 0;
+  return { launchX, launchZ, fallSpeed, startX };
+}
+
+/* ============================================================
+   GESTURE
+   ============================================================ */
+let gestureActive = false;
+let gesturePath = [];
+
+function normalize3(v){
+  const L = Math.hypot(v[0],v[1],v[2]) || 1;
+  return [v[0]/L, v[1]/L, v[2]/L];
+}
+function processGesture(){
+  if (gesturePath.length < 3) return null;
+  const now = performance.now();
+  const recent = gesturePath.filter(p => now - p.t < 220);
+  if (recent.length < 3) return null;
+  const first = recent[0], last = recent[recent.length-1];
+  const dt = (last.t - first.t)/1000;
+  if (dt < 0.02) return null;
+  const vx = (last.x-first.x)/dt;
+  const vy = (last.y-first.y)/dt;
+  const speed = Math.hypot(vx, vy);
+  if (speed < 55) return null;
+  const mid = Math.floor(recent.length/2);
+  const a = recent[0], b = recent[mid], c = recent[recent.length-1];
+  const d1 = [b.x-a.x, b.y-a.y];
+  const d2 = [c.x-b.x, c.y-b.y];
+  const cross = d1[0]*d2[1]-d1[1]*d2[0];
+  const lenProd = (Math.hypot(d1[0],d1[1])*Math.hypot(d2[0],d2[1])) || 1;
+  const curvature = cross/lenProd;
+  const sn = Math.min(1, speed/settings.V_REF);
+  const Vr = [settings.V_BASE + sn*settings.V_FORWARD,
+              (-vy/settings.V_REF)*settings.V_UP,
+              (vx/settings.V_REF)*settings.V_SIDE];
+  const n = normalize3([1, Vr[1]*0.18, Vr[2]*0.18]);
+  return {
+    Vr, n, curvature, sn, speed,
+    startScreenX: first.x, startScreenY: first.y,
+    endScreenX: last.x, endScreenY: last.y,
+  };
+}
+
+/* ============================================================
+   SERVE VALIDATION
+   ============================================================ */
+function validateServe(cfg){
+  const launchPos = [BOT_POS[0], BOT_POS[1], 0];
+  const result = simulateFlight(launchPos, [cfg.vx, cfg.vy, 0], [0, cfg.spinY||0, cfg.spinZ||0]);
+  let botB = 0, plB = 0, plFirstX = null, net = false;
+  for (const ev of result.events){
+    if (ev.type === 'net') net = true;
+    if (ev.type === 'bounce'){
+      if (ev.side === 'bot') botB++;
+      if (ev.side === 'player'){
+        plB++;
+        if (plFirstX === null) plFirstX = ev.x;
+      }
+    }
+  }
+  return !net && botB >= 1 && plB >= 1 && plFirstX !== null && plFirstX >= 0.3 && plFirstX <= 1.15;
+}
+
+/* ============================================================
+   BOTS (6 — Stable removed)
+   ============================================================ */
+const BOTS = {
+  smart: {
+    name:'Smart Bot', emoji:'🧠',
+    desc:'Varied serves, returns ~95% — less on harder shots. Adapts to your game.',
+    baseReturn:0.99, difficultyFactor:0.08,
+    serves: [
+      { vx:-2.0, vy:2.1, spinZ: 150 },
+      { vx:-2.0, vy:2.1, spinZ:-100 },
+      { vx:-2.1, vy:2.0, spinZ: 0 },
+      { vx:-2.0, vy:2.1, spinY: 180 },
+      { vx:-2.2, vy:2.0, spinZ: 200 },
+      { vx:-2.1, vy:2.05, spinZ:-180 },
+    ],
+    planReturn: () => smartPlan(),
+  },
+  defender: {
+    name:'Defender', emoji:'🛡️',
+    desc:'Training partner. Returns softly to the center — ideal for practice.',
+    baseReturn:0.998, difficultyFactor:0.02,
+    serves: [
+      { vx:-2.0, vy:2.1, spinZ:-150 },
+      { vx:-2.0, vy:2.0, spinZ:-200 },
+    ],
+    planReturn: () => ({
+      target:[0.7, TABLE.h, (Math.random()-0.5)*0.35],
+      spin:[0, 0, -100 - Math.random()*100],
+      T: 0.90,
+    }),
+  },
+  attacker: {
+    name:'Attacker', emoji:'⚔️',
+    desc:'Fast topspins to the corners. Misses more often but keeps pressure.',
+    baseReturn:0.94, difficultyFactor:0.15,
+    serves: [
+      { vx:-2.2, vy:2.0, spinZ: 250 },
+      { vx:-2.1, vy:2.05, spinY: 250 },
+      { vx:-2.2, vy:2.0, spinZ: 200 },
+    ],
+    planReturn: () => {
+      const side = Math.random() < 0.5 ? -1 : 1;
+      return {
+        target:[0.4 + Math.random()*0.35, TABLE.h, side*(0.45 + Math.random()*0.2)],
+        spin:[0, 0, 250 + Math.random()*150], T: 0.60,
+      };
+    },
+  },
+  tricky: {
+    name:'Tricky', emoji:'🦊',
+    desc:'Traps, drop shots, lobs, side spin. Always surprising.',
+    baseReturn:0.97, difficultyFactor:0.10,
+    serves: [
+      { vx:-2.0, vy:2.0, spinZ: 200 },
+      { vx:-2.0, vy:2.0, spinZ:-200 },
+      { vx:-2.0, vy:2.0, spinY: 250 },
+      { vx:-2.0, vy:2.0, spinY:-250 },
+      { vx:-2.1, vy:2.0, spinZ: 150, spinY: 150 },
+    ],
+    planReturn: () => {
+      const moves = [
+        { target:[0.4, TABLE.h, 0.6], spin:[0,0,300], T: 0.65 },
+        { target:[1.15, TABLE.h, 0], spin:[0,0,-200], T: 1.20 },
+        { target:[0.5, TABLE.h, -0.5], spin:[0,-450,0], T: 0.70 },
+        { target:[0.8, TABLE.h, 0], spin:[0,0,150], T: 1.35 },
+        { target:[0.5, TABLE.h, 0.7], spin:[0,0,250], T: 0.68 },
+        { target:[0.6, TABLE.h, 0], spin:[0,0,-250], T: 0.55 },
+      ];
+      return moves[Math.floor(Math.random()*moves.length)];
+    },
+  },
+  master: {
+    name:'Master', emoji:'👑',
+    desc:'Hardest. Strong spin, precise angles.',
+    baseReturn:0.99, difficultyFactor:0.06,
+    serves: [
+      { vx:-2.1, vy:2.0, spinZ: 300 },
+      { vx:-2.1, vy:2.0, spinZ:-280 },
+      { vx:-2.1, vy:2.0, spinY: 280 },
+    ],
+    planReturn: () => {
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const spins = [[0,0,400], [0,0,-350], [0,300,0], [0,-300,0]];
+      return {
+        target:[0.35 + Math.random()*0.4, TABLE.h, side*(0.4 + Math.random()*0.25)],
+        spin: spins[Math.floor(Math.random()*spins.length)], T: 0.65,
+      };
+    },
+  },
+  beginner: {
+    name:'Beginner', emoji:'🐣',
+    desc:'Slow, high, soft. Good for warm-up.',
+    baseReturn:0.85, difficultyFactor:0.30,
+    serves: [
+      { vx:-1.9, vy:2.1, spinZ: 0 },
+      { vx:-1.9, vy:2.1, spinZ:-100 },
+    ],
+    planReturn: () => ({
+      target:[0.8 + Math.random()*0.3, TABLE.h, (Math.random()-0.5)*0.6],
+      spin:[0, 0, 50 + Math.random()*100], T: 0.95,
+    }),
+  },
+};
+let currentBot = 'smart';
+
+const SAFE_SERVE = { vx:-2.0, vy:2.0, spinZ: 150 };
+Object.values(BOTS).forEach(bot => {
+  const valid = bot.serves.filter(validateServe);
+  bot.validServes = valid.length > 0 ? valid : [SAFE_SERVE];
+});
+
+const botState = { playerShots: [], playerPlacements: [] };
+function trackPlayerShot(vel, spin){
+  botState.playerShots.push({ spin: spin.slice(), speed: Math.hypot(...vel) });
+  if (botState.playerShots.length > 6) botState.playerShots.shift();
+}
+function trackPlayerPlacement(z){
+  botState.playerPlacements.push({ z });
+  if (botState.playerPlacements.length > 6) botState.playerPlacements.shift();
+}
+function smartPlan(){
+  const shots = botState.playerShots;
+  const places = botState.playerPlacements;
+  let targetZ = 0, spinZ = 0, T = 0.72;
+  if (shots.length >= 2){
+    const avgSpinZ = shots.reduce((s,x) => s + x.spin[2], 0) / shots.length;
+    const avgSpeed = shots.reduce((s,x) => s + x.speed, 0) / shots.length;
+    if (avgSpinZ < -80) spinZ = 250 + Math.random()*120;
+    else if (avgSpinZ > 80) spinZ = -200 - Math.random()*100;
+    else spinZ = (Math.random() - 0.5)*250;
+    if (avgSpeed > 7) T = 0.88;
+    else if (avgSpeed < 4) T = 0.58;
+    else T = 0.72;
+  } else {
+    spinZ = (Math.random() - 0.5)*200;
+  }
+  if (places.length >= 2){
+    const avgZ = places.reduce((s,x) => s + x.z, 0) / places.length;
+    targetZ = Math.max(-0.6, Math.min(0.6, -avgZ*0.75 + (Math.random()-0.5)*0.3));
+  } else {
+    targetZ = (Math.random() - 0.5)*0.6;
+  }
+  return {
+    target:[0.35 + Math.random()*0.55, TABLE.h, targetZ],
+    spin:[0, 0, spinZ], T,
+  };
+}
+
+/* ============================================================
+   BOT GAME STATE
+   ============================================================ */
+const game = {
+  playerScore: 0, botScore: 0,
+  serveTurn: 'player',
+  servesRemaining: 2,
+  phase: 'idle',
+  pauseUntil: 0,
+  botServeAt: 0,
+  currentBall: null,
+  winner: null,
+};
+
+function opponentOf(s){ return s === 'player' ? 'bot' : 'player'; }
+
+function aimAt(start, target, T){
+  const dx = target[0] - start[0];
+  const dy = target[1] - start[1];
+  const dz = target[2] - start[2];
+  return [dx/T*1.18, (dy + 0.5*G()*T*T)/T*0.95, dz/T*1.18];
+}
+
+function shotDifficulty(ball, hitPos){
+  const speed = Math.hypot(ball.vel[0], ball.vel[1], ball.vel[2]);
+  const spin = Math.hypot(ball.spin[0], ball.spin[1], ball.spin[2]);
+  const zPos = Math.abs(hitPos[2]);
+  return Math.min(1, speed/12)*0.35 + Math.min(1, spin/700)*0.40 + Math.min(1, zPos/0.76)*0.25;
+}
+
+function botTryReturn(incomingBall){
+  const bot = BOTS[currentBot];
+  const hitPos = [incomingBall.pos[0],
+                  Math.max(incomingBall.pos[1], TABLE.h + BALL.r + 0.02),
+                  incomingBall.pos[2]];
+  const diff = shotDifficulty(incomingBall, hitPos);
+  const prob = Math.max(0.55, Math.min(0.999, bot.baseReturn - diff*bot.difficultyFactor));
+  if (Math.random() > prob) return null;
+  const plan = bot.planReturn(incomingBall, hitPos);
+  const v = aimAt(hitPos, plan.target, plan.T);
+  const result = simulateFlight(hitPos, v, plan.spin);
+  return createBall({
+    pos: hitPos, vel: v, spin: plan.spin,
+    lastHitter:'bot', isServe:false, trajResult: result,
+  });
+}
+
+function botDoServe(){
+  const bot = BOTS[currentBot];
+  const cfg = bot.validServes[Math.floor(Math.random()*bot.validServes.length)];
+  const zOff = (Math.random() - 0.5)*0.3;
+  const launchPos = [BOT_POS[0], BOT_POS[1], zOff];
+  const v = [cfg.vx, cfg.vy, 0];
+  const s = [0, cfg.spinY || 0, cfg.spinZ || 0];
+  const result = simulateFlight(launchPos, v, s);
+  const ball = createBall({
+    pos: launchPos, vel: v, spin: s,
+    lastHitter:'bot', isServe:true, trajResult: result,
+  });
+  balls.push(ball);
+  game.currentBall = ball;
+  game.phase = 'rally';
+  ensureAudio(); playBotServe();
+  updateScoreboard();
+}
+
+function checkWinner(){
+  const p = game.playerScore, b = game.botScore;
+  if (Math.max(p,b) >= 11 && Math.abs(p-b) >= 2) return p > b ? 'player' : 'bot';
+  return null;
+}
+
+function awardPoint(side, reason){
+  if (game.phase !== 'rally' && game.phase !== 'serving-player') return;
+  if (side === 'player') game.playerScore++;
+  else game.botScore++;
+
+  const isDeuce = game.playerScore >= 10 && game.botScore >= 10;
+  if (isDeuce){
+    game.serveTurn = opponentOf(game.serveTurn);
+    game.servesRemaining = 1;
+  } else {
+    game.servesRemaining--;
+    if (game.servesRemaining <= 0){
+      game.serveTurn = opponentOf(game.serveTurn);
+      game.servesRemaining = 2;
+    }
+  }
+
+  game.currentBall = null;
+  for (const b of balls) b.active = false;
+
+  const winner = checkWinner();
+  if (winner){
+    game.winner = winner;
+    game.phase = 'game-over';
+    showFeedback(winner === 'player' ? '🏆 VICTORY!' : 'DEFEAT', winner === 'player');
+  } else {
+    game.phase = 'point-pause';
+    game.pauseUntil = performance.now() + 1400;
+    showFeedback(
+      (side === 'player' ? 'YOUR POINT' : "BOT'S POINT") + ' — ' + reason,
+      side === 'player'
+    );
+  }
+  updateScoreboard();
+}
+
+function processBotEvent(ball, ev){
+  if (game.phase !== 'rally') return;
+  if (!ball.lastHitter) return;
+
+  if (ev.type === 'bounce'){
+    const side = ev.side;
+    if (side === 'player') ball.bouncesOnPlayer++;
+    else ball.bouncesOnBot++;
+    const lastSide = ball.lastHitter;
+    const recvSide = opponentOf(lastSide);
+    const bouncesOnLastSide = lastSide === 'player' ? ball.bouncesOnPlayer : ball.bouncesOnBot;
+    const bouncesOnRecvSide = recvSide === 'player' ? ball.bouncesOnPlayer : ball.bouncesOnBot;
+
+    if (!ball.isServe && side === lastSide && bouncesOnLastSide === 1){
+      awardPoint(recvSide, 'own half');
+      return;
+    }
+    if (ball.isServe && side === recvSide && bouncesOnLastSide === 0){
+      awardPoint(recvSide, 'illegal serve'); return;
+    }
+    if (ball.isServe && side === lastSide && bouncesOnLastSide === 2){
+      awardPoint(recvSide, 'illegal serve'); return;
+    }
+    if (bouncesOnRecvSide >= 2){
+      awardPoint(lastSide, 'missed'); return;
+    }
+
+    if (side === 'bot' && lastSide === 'player') trackPlayerPlacement(ev.z);
+
+    if (side === 'bot' && recvSide === 'bot' && bouncesOnRecvSide === 1){
+      const retBall = botTryReturn(ball);
+      if (retBall){
+        ball.active = false;
+        balls.push(retBall);
+        game.currentBall = retBall;
+        ensureAudio(); playBotHit(Math.hypot(...retBall.vel));
+      }
+    }
+  } else if (ev.type === 'net'){
+    awardPoint(opponentOf(ball.lastHitter), 'net');
+  } else if (ev.type === 'floor'){
+    const lastSide = ball.lastHitter;
+    const recvSide = opponentOf(lastSide);
+    const bouncesOnRecvSide = recvSide === 'player' ? ball.bouncesOnPlayer : ball.bouncesOnBot;
+    if (bouncesOnRecvSide >= 1) awardPoint(lastSide, 'missed');
+    else awardPoint(recvSide, 'out');
+  }
+}
+
+function startNextServe(){
+  if (game.phase === 'rally' || game.phase === 'game-over') return;
+  game.currentBall = null;
+  for (const b of balls) b.active = false;
+  if (game.serveTurn === 'player'){
+    game.phase = 'serving-player';
+  } else {
+    game.phase = 'serving-bot';
+    game.botServeAt = performance.now() + 600;
+  }
+  updateScoreboard();
+}
+
+function resetBotMatch(){
+  game.playerScore = 0; game.botScore = 0;
+  game.serveTurn = 'player'; game.servesRemaining = 2;
+  game.phase = 'idle'; game.winner = null;
+  game.currentBall = null; balls.length = 0;
+  botState.playerShots = []; botState.playerPlacements = [];
+  updateScoreboard();
+  startNextServe();
+}
+
+/* ============================================================
+   MACHINE
+   ============================================================ */
+const machine = {
+  autoFire: false, nextFireTime: 0,
+  z: 0,                  // текущая видимая позиция
+  zFrom: 0,              // откуда ехать
+  zNext: 0,              // куда ехать
+  slideStart: 0,         // когда начали ехать
+  recoil: 0,
+  pendingShot: null,     // заранее рассчитанный следующий выстрел
+};
+
+function machineFire(){
+  // Используем заранее рассчитанный выстрел, если есть
+  let cfg;
+  if (machine.pendingShot){
+    cfg = machine.pendingShot;
+    machine.pendingShot = null;
+  } else {
+    const pattern = MACHINE_PATTERNS[currentMachinePattern];
+    cfg = pattern.generate(machinePatternState);
+  }
+  const preset = cfg.preset || MACHINE_SHOT_PRESETS[currentMachineShot];
+
+  // Стреляем из текущей видимой позиции
+  const launchPos = [TABLE.l - 0.10, TABLE.h + 0.30, machine.z];
+  const v = [
+    preset.v[0] * machineSpeedMul,
+    preset.v[1] * machineSpeedMul,
+    cfg.vz || 0,
+  ];
+  const spin = [
+    preset.s[0] * machineSpinMul,
+    preset.s[1] * machineSpinMul,
+    preset.s[2] * machineSpinMul,
+  ];
+
+  const result = simulateFlight(launchPos, v, spin);
+  balls.push(createBall({
+    pos: launchPos, vel: v, spin: spin,
+    lastHitter: 'bot', isServe: false, trajResult: result,
+  }));
+
+  // СРАЗУ планируем следующую позицию и стартуем движение
+  const patternNext = MACHINE_PATTERNS[currentMachinePattern];
+  machine.pendingShot = patternNext.generate(machinePatternState);
+  machine.zFrom = machine.z;
+  machine.zNext = machine.pendingShot.z;
+  machine.slideStart = performance.now();
+
+  machine.recoil = 0.2;
+  ensureAudio(); playMachine();
+}
+
+/* ============================================================
+   FEEDBACK / READOUTS
+   ============================================================ */
+let feedbackTimer = 0, feedbackText = '', feedbackGood = false;
+
+function showFeedback(text, good){
+  feedbackText = text;
+  feedbackTimer = 1.4;
+  feedbackGood = good;
+  const rd = document.getElementById('rd-fall');
+  rd.classList.toggle('good', good);
+  rd.classList.toggle('miss', !good);
+}
+function spinType(om){
+  const [wx, wy, wz] = om;
+  const mag = Math.hypot(wx, wy, wz);
+  if (mag < 30) return 'flat';
+  if (Math.abs(wz) >= Math.abs(wx) && Math.abs(wz) >= Math.abs(wy))
+    return wz < 0 ? 'topspin' : 'backspin';
+  return 'sidespin';
+}
+function updateReadouts(v, om, fallSpeed){
+  document.getElementById('r-vout').textContent = Math.hypot(...v).toFixed(1) + ' m/s';
+  document.getElementById('r-om').textContent = Math.hypot(...om).toFixed(0) + ' rad/s';
+  document.getElementById('r-type').textContent = spinType(om);
+  document.getElementById('r-fall').textContent = fallSpeed.toFixed(1) + ' m/s';
+  document.querySelectorAll('.rd').forEach(el => {
+    el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+  });
+}
+function updateScoreboard(){
+  document.getElementById('player-score').textContent = game.playerScore;
+  document.getElementById('bot-score').textContent = game.botScore;
+  document.getElementById('bot-name-disp').textContent = BOTS[currentBot].name;
+  document.getElementById('serve-indicator').textContent =
+    'serve: ' + (game.serveTurn === 'player' ? 'you' : 'bot');
+  document.querySelectorAll('.score-team').forEach(el => el.classList.remove('serving'));
+  document.getElementById(game.serveTurn === 'player' ? 'score-player' : 'score-bot')
+    .classList.add('serving');
+  const statusEl = document.getElementById('rally-status');
+  let s = '—';
+  if (game.phase === 'serving-player') s = 'wait for serve';
+  else if (game.phase === 'serving-bot') s = 'bot serving…';
+  else if (game.phase === 'rally') s = 'ball in play';
+  else if (game.phase === 'point-pause') s = 'point';
+  else if (game.phase === 'game-over') s = 'match over';
+  statusEl.textContent = s;
+}
+
+/* ============================================================
+   ENVIRONMENT
+   ============================================================ */
+function drawEnvironment(){
+  if (currentEnv === ENV.OLYMPIC) drawOlympicHall();
+  else if (currentEnv === ENV.CHINESE) drawChineseHall();
+  else drawCleanBg();
+}
+function drawCleanBg(){
+  const bg = ctx.createRadialGradient(W*0.5, H*0.30, 60, W*0.5, H*0.30, 780);
+  bg.addColorStop(0, '#141d28'); bg.addColorStop(1, '#0a0e13');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+}
+function drawOlympicHall(){
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#0a0418'); bg.addColorStop(0.35, '#1a0a35');
+  bg.addColorStop(0.7, '#0e0522'); bg.addColorStop(1, '#050210');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  const spot = ctx.createRadialGradient(W/2, -100, 80, W/2, -100, 800);
+  spot.addColorStop(0, 'rgba(160,90,240,0.42)');
+  spot.addColorStop(0.4, 'rgba(130,70,200,0.16)');
+  spot.addColorStop(1, 'rgba(120,60,180,0)');
+  ctx.fillStyle = spot; ctx.fillRect(0, 0, W, H);
+  const ls = ctx.createRadialGradient(100, -50, 50, 100, -50, 520);
+  ls.addColorStop(0, 'rgba(80,150,255,0.16)');
+  ls.addColorStop(1, 'rgba(80,150,255,0)');
+  ctx.fillStyle = ls; ctx.fillRect(0, 0, W, H*0.72);
+  const rs = ctx.createRadialGradient(W-100, -50, 50, W-100, -50, 520);
+  rs.addColorStop(0, 'rgba(200,100,255,0.14)');
+  rs.addColorStop(1, 'rgba(200,100,255,0)');
+  ctx.fillStyle = rs; ctx.fillRect(0, 0, W, H*0.72);
+  ctx.strokeStyle = 'rgba(150,100,220,0.05)'; ctx.lineWidth = 1;
+  for (let y = 0; y < H*0.55; y += 40){
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+  drawOlympicRings(W/2, 95);
+  ctx.textAlign = 'center';
+  ctx.font = '700 30px ui-sans-serif, sans-serif';
+  ctx.fillStyle = 'rgba(210,190,255,0.22)';
+  ctx.fillText('WORLD CHAMPIONSHIP', W/2, 178);
+  ctx.textAlign = 'left';
+}
+function drawOlympicRings(cx, cy){
+  const r = 20, sp = r*2.3;
+  const top = cy, bot = cy + r*1.1;
+  ctx.save();
+  ctx.shadowColor = 'rgba(180,120,255,0.55)'; ctx.shadowBlur = 18;
+  ctx.lineWidth = 3.5;
+  ctx.globalAlpha = 0.30;
+  const botR = [[cx-sp/2, bot, '#FFCC00'], [cx+sp/2, bot, '#00AA44']];
+  for (const [x,y,c] of botR){ ctx.strokeStyle = c; ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.stroke(); }
+  ctx.globalAlpha = 0.38;
+  const topR = [[cx-sp, top, '#0099DD'], [cx, top, '#2a2a2a'], [cx+sp, top, '#DD2233']];
+  for (const [x,y,c] of topR){ ctx.strokeStyle = c; ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.stroke(); }
+  ctx.restore();
+}
+function drawChineseHall(){
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#3a2418'); bg.addColorStop(0.5, '#2a1810'); bg.addColorStop(1, '#150a06');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(0,0,0,0.32)'; ctx.lineWidth = 1;
+  const bh=32, bw=78;
+  for (let y = 0; y < H*0.62; y += bh){
+    const off = (Math.floor(y/bh)%2===0) ? 0 : bw/2;
+    for (let x = -off; x < W; x += bw) ctx.strokeRect(x,y,bw,bh);
+  }
+  const glow = ctx.createRadialGradient(W/2, 20, 30, W/2, 20, 500);
+  glow.addColorStop(0, 'rgba(255,200,100,0.22)');
+  glow.addColorStop(0.4, 'rgba(255,180,80,0.10)');
+  glow.addColorStop(1, 'rgba(255,180,80,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H*0.85);
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 38px "Noto Serif SC", serif';
+  ctx.fillStyle = 'rgba(200,60,40,0.42)';
+  ctx.fillText('乒乓球', W/2, 110);
+  ctx.textAlign = 'left';
+}
+
+/* ============================================================
+   DRAW: floor, table, net, machine, bot, ball, traj
+   ============================================================ */
+function drawFloor(){
+  const c = [project([-2.5,0,-2.5]),project([-2.5,0,2.5]),
+             project([3.5,0,2.5]),project([3.5,0,-2.5])];
+  const grd = ctx.createLinearGradient(0, c[3][1], 0, c[0][1]);
+  if (currentEnv === ENV.CHINESE){ grd.addColorStop(0,'#1a1008'); grd.addColorStop(1,'#0a0503'); }
+  else if (currentEnv === ENV.OLYMPIC){ grd.addColorStop(0,'#0a0518'); grd.addColorStop(1,'#030108'); }
+  else { grd.addColorStop(0,'#0e1620'); grd.addColorStop(1,'#05080c'); }
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.moveTo(c[0][0],c[0][1]);
+  for (let i=1;i<4;i++) ctx.lineTo(c[i][0],c[i][1]);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = currentEnv===ENV.OLYMPIC ? 'rgba(120,80,200,0.06)' :
+                    currentEnv===ENV.CHINESE ? 'rgba(120,80,40,0.06)' :
+                    'rgba(255,255,255,0.02)';
+  ctx.lineWidth = 1;
+  for (let gx=-2; gx<=3; gx++){
+    const a = project([gx,0,-2.5]), b = project([gx,0,2.5]);
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  }
+  for (let gz=-2; gz<=2; gz++){
+    const a = project([-2.5,0,gz]), b = project([3.5,0,gz]);
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  }
+}
+
+function drawTable(){
+  const corners = [[0,TABLE.h,-TABLE.w/2],[0,TABLE.h,TABLE.w/2],
+                   [TABLE.l,TABLE.h,TABLE.w/2],[TABLE.l,TABLE.h,-TABLE.w/2]].map(project);
+  const grd = ctx.createLinearGradient(0, corners[0][1], 0, corners[2][1]);
+  if (currentEnv === ENV.CHINESE){ grd.addColorStop(0,'#1a5a78'); grd.addColorStop(1,'#0f3a50'); }
+  else if (currentEnv === ENV.OLYMPIC){ grd.addColorStop(0,'#1e3a8a'); grd.addColorStop(1,'#0f1f55'); }
+  else { grd.addColorStop(0,'#1f6a90'); grd.addColorStop(1,'#134d6c'); }
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.moveTo(corners[0][0],corners[0][1]);
+  for (let i=1;i<4;i++) ctx.lineTo(corners[i][0],corners[i][1]);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 2.5; ctx.stroke();
+
+  const c1 = project([0,TABLE.h,0]), c2 = project([TABLE.l,TABLE.h,0]);
+  ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(c1[0],c1[1]); ctx.lineTo(c2[0],c2[1]); ctx.stroke();
+
+  for (const z of [-TABLE.w/2, TABLE.w/2]){
+    const a = project([0,TABLE.h,z]), b = project([TABLE.l,TABLE.h,z]);
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  }
+
+  if (settings.showZone && (game.phase === 'serving-player' || mode === MODE.SERVE)){
+    const zL=-0.9, zR=0.9;
+    const a = project([-0.01,TABLE.h+0.001,zL]);
+    const b = project([-0.01,TABLE.h+0.001,zR]);
+    const c = project([GREEN_ZONE_FAR,TABLE.h+0.001,zR]);
+    const d = project([GREEN_ZONE_FAR,TABLE.h+0.001,zL]);
+    ctx.fillStyle = 'rgba(56,211,159,0.06)';
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]);
+    ctx.lineTo(c[0],c[1]); ctx.lineTo(d[0],d[1]);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(56,211,159,0.22)'; ctx.lineWidth = 1; ctx.stroke();
+  }
+}
+
+function drawNet(){
+  if (!settings.showNet) return;
+  const x=NET.x, yB=NET.y0, yT=NET.y1, zL=NET.z0, zR=NET.z1;
+  const c00 = project([x,yB,zL]), c01 = project([x,yB,zR]);
+  const c10 = project([x,yT,zR]), c11 = project([x,yT,zL]);
+  ctx.fillStyle = 'rgba(235,245,255,0.055)';
+  ctx.beginPath(); ctx.moveTo(c00[0],c00[1]); ctx.lineTo(c01[0],c01[1]);
+  ctx.lineTo(c10[0],c10[1]); ctx.lineTo(c11[0],c11[1]);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(235,245,255,0.2)'; ctx.lineWidth = 0.7;
+  for (let i=1;i<9;i++){
+    const f=i/9, y=yB+(yT-yB)*f;
+    const a = project([x,y,zL]), b = project([x,y,zR]);
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  }
+  for (let i=0;i<=30;i++){
+    const f=i/30, z=zL+(zR-zL)*f;
+    const a = project([x,yB,z]), b = project([x,yT,z]);
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(c11[0],c11[1]); ctx.lineTo(c10[0],c10[1]); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.moveTo(c00[0],c00[1]); ctx.lineTo(c01[0],c01[1]); ctx.stroke();
+  for (const z of [zL-0.04, zR+0.04]){
+    const base = project([x,yB-0.03,z]), top = project([x,yT+0.03,z]);
+    ctx.strokeStyle = '#c8d0d8'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(base[0],base[1]); ctx.lineTo(top[0],top[1]); ctx.stroke();
+  }
+}
+
+/* Machine visual position uses zDisplay (smooth) */
+function drawMachine(){
+  const mz = machine.z;
+  const mx = TABLE.l - 0.10;
+  const topY = TABLE.h + 0.30;
+  const [sx,sy] = project([mx,topY,mz]);
+  const depth = depthAt(mx);
+  const baseY = sy + 32*depth, bodyW = 22*depth, bodyH = 32*depth;
+
+
+
+  const sp = project([mx,TABLE.h,mz]);
+  ctx.beginPath(); ctx.ellipse(sp[0],sp[1],bodyW*1.4,bodyW*0.45,0,0,TAU);
+  ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fill();
+  const bodyGrad = ctx.createLinearGradient(sx-bodyW,0,sx+bodyW,0);
+  bodyGrad.addColorStop(0,'#0e1418'); bodyGrad.addColorStop(0.3,'#3a4a5e');
+  bodyGrad.addColorStop(0.5,'#4a5a70'); bodyGrad.addColorStop(0.8,'#2a3a4e');
+  bodyGrad.addColorStop(1,'#0a1015');
+  ctx.beginPath(); ctx.moveTo(sx-bodyW,baseY);
+  ctx.lineTo(sx-bodyW,sy+bodyH*0.5);
+  ctx.ellipse(sx,sy+bodyH*0.5,bodyW,bodyH*0.3,0,Math.PI,0);
+  ctx.lineTo(sx+bodyW,baseY);
+  ctx.ellipse(sx,baseY,bodyW,bodyH*0.3,0,0,Math.PI);
+  ctx.closePath(); ctx.fillStyle = bodyGrad; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(sx,sy+bodyH*0.5,bodyW,bodyH*0.3,0,0,TAU);
+  const topGrad = ctx.createRadialGradient(sx-bodyW*0.3,sy+bodyH*0.5-bodyH*0.1,1,sx,sy+bodyH*0.5,bodyW);
+  topGrad.addColorStop(0,'#5a6a80'); topGrad.addColorStop(1,'#2a3a4e');
+  ctx.fillStyle = topGrad; ctx.fill();
+
+  const turretY = sy + bodyH*0.2;
+  ctx.fillStyle = '#2a3a4e';
+  ctx.beginPath();
+  ctx.moveTo(sx-bodyW*0.6,turretY+bodyH*0.2);
+  ctx.lineTo(sx-bodyW*0.6,turretY-bodyH*0.15);
+  ctx.lineTo(sx+bodyW*0.6,turretY-bodyH*0.15);
+  ctx.lineTo(sx+bodyW*0.6,turretY+bodyH*0.2);
+  ctx.closePath(); ctx.fill();
+
+  const nEnd = project([mx-0.16,topY-0.01,mz]);
+  ctx.strokeStyle = '#3a4a5e'; ctx.lineWidth = 7*depth; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(sx,turretY); ctx.lineTo(nEnd[0],nEnd[1]); ctx.stroke();
+  ctx.strokeStyle = '#5a6a80'; ctx.lineWidth = 4*depth;
+  ctx.beginPath(); ctx.moveTo(sx,turretY); ctx.lineTo(nEnd[0],nEnd[1]); ctx.stroke();
+  ctx.beginPath(); ctx.arc(nEnd[0],nEnd[1],4*depth,0,TAU);
+  ctx.fillStyle = '#05080a'; ctx.fill();
+
+  const ledY = sy + bodyH*0.7;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(sx-14,ledY-4,28,8);
+  ctx.fillStyle = machine.autoFire ? '#ff5a3c' : '#38d39f';
+  ctx.fillRect(sx-12,ledY-2,24,4);
+  ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
+  ctx.fillRect(sx-12,ledY-2,24,4); ctx.shadowBlur = 0;
+
+  if (machine.recoil > 0){
+    const a = machine.recoil/0.2;
+    ctx.strokeStyle = `rgba(255,255,255,${a*0.7})`; ctx.lineWidth = 2;
+    for (let i=0;i<3;i++){
+      const off = (i-1)*6;
+      ctx.beginPath();
+      ctx.moveTo(nEnd[0]-10+off,nEnd[1]-3);
+      ctx.lineTo(nEnd[0]-20+off,nEnd[1]-3);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawBotRacket(){
+  const bz = game.currentBall ? game.currentBall.pos[2]*0.2 : 0;
+  const [sx,sy] = project([BOT_POS[0]+0.15,TABLE.h+0.05,bz]);
+  const depth = depthAt(BOT_POS[0]+0.15);
+  const r = 22*depth;
+  const sp = project([BOT_POS[0]+0.15,TABLE.h,bz]);
+  ctx.beginPath(); ctx.ellipse(sp[0],sp[1],r*0.9,r*0.35,0,0,TAU);
+  ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fill();
+  const grd = ctx.createRadialGradient(sx-r*0.3,sy-r*0.3,r*0.1,sx,sy,r*1.2);
+  grd.addColorStop(0,'#ff7a5c'); grd.addColorStop(0.7,'#c62a20'); grd.addColorStop(1,'#7a1a12');
+  ctx.beginPath(); ctx.ellipse(sx,sy-r*0.3,r*0.75,r*0.55,0,0,TAU);
+  ctx.fillStyle = grd; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.beginPath(); ctx.rect(sx-r*0.12,sy+r*0.1,r*0.24,r*0.7);
+  ctx.fillStyle = '#a07840'; ctx.fill();
+  ctx.strokeStyle = '#5a4020'; ctx.lineWidth = 1; ctx.stroke();
+}
+
+function drawBall(ball){
+  const pos = ball.pos;
+  const [sx,sy] = project(pos);
+  const r = ballDrawR(pos[0]);
+  const overTable = pos[0]>=0 && pos[0]<=TABLE.l &&
+                    Math.abs(pos[2])<=TABLE.w/2+0.02 && pos[1]>=TABLE.h-0.005;
+  const shadowY = overTable ? TABLE.h : 0;
+  const sp = project([pos[0],shadowY,pos[2]]);
+  ctx.beginPath(); ctx.ellipse(sp[0],sp[1],r*0.9,r*0.33,0,0,TAU);
+  ctx.fillStyle = overTable ? 'rgba(0,0,0,.34)' : 'rgba(0,0,0,.5)';
+  ctx.fill();
+  const inZone = ball.lastHitter === 'bot' &&
+                 pos[0]>=PLAY_X_MIN && pos[0]<=PLAY_X_MAX && pos[1]>=0 &&
+                 (mode !== MODE.BOT || game.phase === 'rally');
+  if (inZone){
+    const grd = ctx.createRadialGradient(sx,sy,0,sx,sy,r*3.2);
+    grd.addColorStop(0,'rgba(56,211,159,0.55)');
+    grd.addColorStop(0.5,'rgba(56,211,159,0.22)');
+    grd.addColorStop(1,'rgba(56,211,159,0)');
+    ctx.beginPath(); ctx.arc(sx,sy,r*3.2,0,TAU);
+    ctx.fillStyle = grd; ctx.fill();
+  }
+  const grd = ctx.createRadialGradient(sx-r*0.35,sy-r*0.35,r*0.1,sx,sy,r*1.15);
+  if (ball.lastHitter === 'player'){
+    grd.addColorStop(0,'#e8f8ff'); grd.addColorStop(0.6,'#c8e6ff'); grd.addColorStop(1,'#a0c4dc');
+  } else {
+    grd.addColorStop(0,'#fff4e0'); grd.addColorStop(0.6,'#ffe8c8'); grd.addColorStop(1,'#d4b895');
+  }
+  ctx.beginPath(); ctx.arc(sx,sy,r,0,TAU);
+  ctx.fillStyle = grd; ctx.fill();
+  ctx.strokeStyle = inZone ? 'rgba(56,211,159,0.95)' :
+                    ball.lastHitter === 'player' ? 'rgba(180,220,255,.7)' : 'rgba(255,220,180,.7)';
+  ctx.lineWidth = inZone ? 2.5 : 1.2; ctx.stroke();
+  const R = ball.orientation;
+  const vd = [1,0.3,0]; const vl = Math.hypot(...vd);
+  const vn = [vd[0]/vl, vd[1]/vl, vd[2]/vl];
+  for (let i=0;i<SURFACE_POINTS.length;i++){
+    const pt = SURFACE_POINTS[i];
+    const w = matApply(R, pt);
+    const dot = w[0]*vn[0]+w[1]*vn[1]+w[2]*vn[2];
+    if (dot > -0.05) continue;
+    const offX = w[2]*r, offY = -w[1]*r;
+    const dist = Math.hypot(offX,offY)/r;
+    const rad = Math.max(1.4, 2.8 - dist*0.9);
+    ctx.beginPath(); ctx.arc(sx+offX,sy+offY,rad,0,TAU);
+    ctx.fillStyle = POINT_COLORS[i];
+    ctx.globalAlpha = Math.max(0.35, 1 - dist*0.55);
+    ctx.fill(); ctx.globalAlpha = 1;
+  }
+}
+
+function drawTraj(ball){
+  if (!settings.showTrail) return;
+  const traj = ball.traj;
+  if (traj.length < 2) return;
+  const age = Math.min(1, ball.virtTime/3);
+  let color;
+  if (ball.netHit) color = `rgba(255,90,60,${0.55-age*0.35})`;
+  else if (ball.lastHitter === 'player') color = `rgba(100,180,255,${0.65-age*0.45})`;
+  else color = `rgba(255,165,77,${0.65-age*0.45})`;
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 2.2; ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  const maxIdx = Math.min(traj.length-1, ball.idx+400);
+  for (let i=0;i<=maxIdx;i++){
+    const [sx,sy] = project(traj[i].p);
+    if (i===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
+  }
+  ctx.stroke(); ctx.restore();
+}
+
+function drawGestureTrail(){
+  if (gesturePath.length < 2) return;
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const n = gesturePath.length;
+  for (let i=1;i<n;i++){
+    const a = gesturePath[i-1], b = gesturePath[i];
+    const t = i/n;
+    ctx.strokeStyle = `rgba(255,90,60,${0.12+0.68*t})`;
+    ctx.lineWidth = 1 + 4*t;
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ============================================================
+   HIT DISPATCH
+   ============================================================ */
+function tryHit(gesture){
+  if (mode === MODE.SERVE) return tryServeMode(gesture);
+  if (mode === MODE.MACHINE) return tryReturnGesture(gesture);
+  if (mode === MODE.BOT){
+    if (game.phase === 'serving-player') return tryBotModeServe(gesture);
+    if (game.phase === 'rally') return tryBotModeReturn(gesture);
+  }
+}
+
+function tryServeMode(gesture){
+  const sp = computeServeParams(gesture);
+  const vin = [0, -sp.fallSpeed, 0];
+  const contact = computeContact(vin, [0,0,0], gesture.n, gesture.Vr);
+  if (!contact.hit){ showFeedback('WEAK SWIPE', false); return; }
+  const sideSpin = gesture.curvature*gesture.sn*settings.curvBoost*800;
+  const om = [contact.om_out[0], contact.om_out[1]+sideSpin, contact.om_out[2]];
+  const launchPos = [sp.launchX, SERVE_HEIGHT, sp.launchZ];
+  const result = simulateFlight(launchPos, contact.v_out, om);
+  balls.push(createBall({
+    pos: launchPos, vel: contact.v_out, spin: om,
+    lastHitter:'player', isServe:true, trajResult: result,
+  }));
+  ensureAudio(); playPlayerHit(Math.hypot(...contact.v_out));
+  updateReadouts(contact.v_out, om, sp.fallSpeed);
+  showFeedback('SERVE', true);
+}
+
+function tryBotModeServe(gesture){
+  const sp = computeServeParams(gesture);
+  const vin = [0, -sp.fallSpeed, 0];
+  const contact = computeContact(vin, [0,0,0], gesture.n, gesture.Vr);
+  if (!contact.hit){ showFeedback('WEAK SWIPE', false); return; }
+  const sideSpin = gesture.curvature*gesture.sn*settings.curvBoost*800;
+  const om = [contact.om_out[0], contact.om_out[1]+sideSpin, contact.om_out[2]];
+  const launchPos = [sp.launchX, SERVE_HEIGHT, sp.launchZ];
+  const result = simulateFlight(launchPos, contact.v_out, om);
+  const ball = createBall({
+    pos: launchPos, vel: contact.v_out, spin: om,
+    lastHitter:'player', isServe:true, trajResult: result,
+  });
+  balls.push(ball);
+  game.currentBall = ball;
+  game.phase = 'rally';
+  trackPlayerShot(contact.v_out, om);
+  ensureAudio(); playPlayerHit(Math.hypot(...contact.v_out));
+  updateReadouts(contact.v_out, om, sp.fallSpeed);
+  showFeedback('SERVE', true);
+  updateScoreboard();
+}
+
+function findBestBall(filter){
+  let bestBall = null, bestDist = Infinity;
+  for (const ball of balls){
+    if (!ball.active || !filter(ball)) continue;
+    const x = ball.pos[0];
+    if (x < PLAY_X_MIN || x > PLAY_X_MAX) continue;
+    if (ball.pos[1] < -0.05) continue;
+    const d = Math.abs(x);
+    if (d < bestDist){ bestDist = d; bestBall = ball; }
+  }
+  return { bestBall, bestDist };
+}
+
+function tryReturnGesture(gesture){
+  const { bestBall, bestDist } = findBestBall(b => b.lastHitter !== 'player');
+  if (!bestBall){ showFeedback('MISS', false); return; }
+  const contact = computeContact(bestBall.vel, bestBall.spin, gesture.n, gesture.Vr);
+  if (!contact.hit){ showFeedback('WRONG ANGLE', false); return; }
+  bestBall.active = false;
+  const sideSpin = gesture.curvature*gesture.sn*settings.curvBoost*800;
+  const om = [contact.om_out[0], contact.om_out[1]+sideSpin, contact.om_out[2]];
+  const launchPos = [bestBall.pos[0], Math.max(bestBall.pos[1], TABLE.h+BALL.r), bestBall.pos[2]];
+  const result = simulateFlight(launchPos, contact.v_out, om);
+  const newBall = createBall({
+    pos: launchPos, vel: contact.v_out, spin: om,
+    lastHitter:'player', isServe:false, trajResult: result,
+  });
+  balls.push(newBall);
+  if (mode === MODE.BOT) game.currentBall = newBall;
+  trackPlayerShot(contact.v_out, om);
+  ensureAudio(); playPlayerHit(Math.hypot(...contact.v_out));
+  const quality = Math.round(Math.max(0, 1 - bestDist/PLAY_SWEET_HALF)*100);
+  updateReadouts(contact.v_out, om, 0);
+  showFeedback(quality > 70 ? 'PERFECT' : quality > 40 ? 'GOOD' : 'WEAK', true);
+}
+
+function tryBotModeReturn(gesture){ tryReturnGesture(gesture); }
+
+/* ============================================================
+   UPDATE
+   ============================================================ */
+let timeScale = 0.5;
+let lastUpdateTime = performance.now();
+
+function advanceBall(ball, virtDt){
+  ball.virtTime += virtDt;
+  const traj = ball.traj;
+  while (ball.idx < traj.length - 1 && traj[ball.idx].t < ball.virtTime) ball.idx++;
+  const s = traj[ball.idx];
+  ball.pos = s.p; ball.vel = s.v; ball.spin = s.w;
+  if (!ball.netHitTouched && s.netHit){
+    ball.netHitTouched = true;
+    ensureAudio(); playNetHit();
+  }
+  const wm = Math.hypot(s.w[0], s.w[1], s.w[2]);
+  if (wm > 0.5){
+    const axis = [s.w[0]/wm, s.w[1]/wm, s.w[2]/wm];
+    ball.orientation = matMul(matRot(axis, wm*virtDt), ball.orientation);
+  }
+}
+
+function updateBalls(now){
+  const realDt = Math.min(0.05, (now - lastUpdateTime)/1000);
+  lastUpdateTime = now;
+  const virtDt = realDt * timeScale;
+
+  if (machine.recoil > 0) machine.recoil = Math.max(0, machine.recoil - realDt);
+  /* Smooth machine position toward target z */
+  /* Плавный проезд от zFrom к zNext за ~85% интервала авто-подачи */
+if (machine.zFrom !== machine.zNext || machine.z !== machine.zNext){
+  const total = Math.max(500, machineInterval * 1000 * 0.85);
+  let t = (performance.now() - machine.slideStart) / total;
+  t = Math.max(0, Math.min(1, t));
+  const eased = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+  machine.z = machine.zFrom + (machine.zNext - machine.zFrom) * eased;
+}
+
+  for (let i = balls.length - 1; i >= 0; i--){
+    const ball = balls[i];
+    if (!ball.active){ balls.splice(i, 1); continue; }
+    advanceBall(ball, virtDt);
+    while (ball.nextEvent < ball.events.length &&
+           ball.events[ball.nextEvent].t <= ball.virtTime){
+      const ev = ball.events[ball.nextEvent];
+      ball.nextEvent++;
+      if (ev.type === 'bounce') playTableBounce(1);
+      else if (ev.type === 'floor') playFloorBounce(1);
+      else if (ev.type === 'wall') playWallBounce();
+      if (mode === MODE.BOT) processBotEvent(ball, ev);
+      if (mode === MODE.MACHINE && (ev.type === 'floor' || ev.type === 'wall')) ball.active = false;
+      if (!ball.active || (mode === MODE.BOT && game.phase !== 'rally')) break;
+    }
+    if (!ball.active) continue;
+    if (ball.idx >= ball.traj.length - 1){
+      if (!ball.doneAt) ball.doneAt = ball.virtTime;
+      else if (ball.virtTime - ball.doneAt > (mode === MODE.SERVE ? 1.5 : 3)) ball.active = false;
+    }
+  }
+
+  if (mode === MODE.MACHINE){
+    if (machine.autoFire && now >= machine.nextFireTime){
+      machineFire();
+      machine.nextFireTime = now + machineInterval*1000;
+    }
+  }
+  if (mode === MODE.BOT){
+    if (game.phase === 'serving-bot' && now >= game.botServeAt) botDoServe();
+    if (game.phase === 'point-pause' && now >= game.pauseUntil) startNextServe();
+  }
+
+  if (feedbackTimer > 0) feedbackTimer -= realDt;
+}
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+function frame(now){
+  updateBalls(now);
+  drawEnvironment();
+  drawFloor();
+  drawTable();
+  drawNet();
+
+  if (mode === MODE.MACHINE) drawMachine();
+  if (mode === MODE.BOT) drawBotRacket();
+
+  for (const b of balls) drawTraj(b);
+  for (const b of balls) if (b.active) drawBall(b);
+  drawGestureTrail();
+
+  if (timeScale < 1){
+    ctx.font = '600 12px ui-monospace, monospace';
+    ctx.fillStyle = 'rgba(255,90,60,.85)'; ctx.textAlign = 'left';
+    ctx.fillText('SLOW-MO ×' + timeScale, 16, 26);
+  }
+  if (feedbackTimer > 0){
+    ctx.font = '700 20px ui-sans-serif, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    const alpha = Math.min(1, feedbackTimer*2);
+    ctx.fillStyle = feedbackGood
+      ? `rgba(56,211,159,${alpha})`
+      : `rgba(255,90,60,${alpha})`;
+    ctx.fillText(feedbackText, W/2, 60);
+    ctx.textAlign = 'left';
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+function getMouse(e){
+  const rect = canvas.getBoundingClientRect();
+  return [(e.clientX-rect.left)*W/rect.width, (e.clientY-rect.top)*H/rect.height];
+}
+canvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  ensureAudio();
+  canvas.setPointerCapture(e.pointerId);
+  const [mx,my] = getMouse(e);
+  gestureActive = true;
+  gesturePath = [{ x:mx, y:my, t:performance.now() }];
+});
+canvas.addEventListener('pointermove', e => {
+  if (!gestureActive) return;
+  const [mx,my] = getMouse(e);
+  gesturePath.push({ x:mx, y:my, t:performance.now() });
+  if (gesturePath.length > 400) gesturePath.shift();
+});
+canvas.addEventListener('pointerup', e => {
+  if (!gestureActive) return;
+  gestureActive = false;
+  const g = processGesture();
+  gesturePath = [];
+  if (g) tryHit(g);
+});
+canvas.addEventListener('pointercancel', () => {
+  gestureActive = false; gesturePath = [];
+});
+
+/* ============================================================
+   MODE SWITCH
+   ============================================================ */
+function setMode(newMode){
+  mode = newMode;
+  document.querySelectorAll('.mode-btn[data-mode]').forEach(b => {
+    b.classList.toggle('on', b.dataset.mode === newMode);
+  });
+  document.body.classList.toggle('mode-serve', newMode === MODE.SERVE);
+  document.body.classList.toggle('mode-machine', newMode === MODE.MACHINE);
+  document.body.classList.toggle('mode-bot', newMode === MODE.BOT);
+  balls.length = 0;
+  machine.autoFire = false;
+  const ma = document.getElementById('machine-auto');
+  if (ma) ma.checked = false;
+  document.getElementById('scoreboard').style.display =
+    newMode === MODE.BOT ? 'grid' : 'none';
+  if (newMode === MODE.BOT) resetBotMatch();
+}
+document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => setMode(btn.dataset.mode));
+});
+document.querySelectorAll('.env-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentEnv = btn.dataset.env;
+    document.querySelectorAll('.env-btn').forEach(b => {
+      b.classList.toggle('on', b === btn);
+    });
+  });
+});
+
+/* ============================================================
+   UI: Bots
+   ============================================================ */
+const botGridEl = document.getElementById('bot-grid');
+Object.entries(BOTS).forEach(([key, bot]) => {
+  const btn = document.createElement('button');
+  btn.className = 'bot-btn' + (key === currentBot ? ' on' : '');
+  btn.innerHTML = `<span class="emo">${bot.emoji}</span> ${bot.name}`;
+  btn.dataset.key = key;
+  btn.addEventListener('click', () => {
+    currentBot = key;
+    document.querySelectorAll('.bot-btn').forEach(b => {
+      b.classList.toggle('on', b.dataset.key === key);
+    });
+    document.getElementById('bot-desc').innerHTML =
+      `<b>${bot.name}.</b> ${bot.desc}`;
+    updateScoreboard();
+    if (mode === MODE.BOT) resetBotMatch();
+  });
+  botGridEl.appendChild(btn);
+});
+document.getElementById('bot-desc').innerHTML =
+  `<b>${BOTS[currentBot].name}.</b> ${BOTS[currentBot].desc}`;
+
+/* ============================================================
+   UI: Machine buttons
+   ============================================================ */
+const machineShotEl = document.getElementById('machine-shot-types');
+Object.entries(MACHINE_SHOT_PRESETS).forEach(([key, preset]) => {
+  const btn = document.createElement('button');
+  btn.className = 'bot-btn' + (key === currentMachineShot ? ' on' : '');
+  btn.textContent = preset.name;
+  btn.dataset.key = key;
+  btn.addEventListener('click', () => {
+    currentMachineShot = key;
+    document.querySelectorAll('#machine-shot-types .bot-btn').forEach(b => {
+      b.classList.toggle('on', b.dataset.key === key);
+    });
+  });
+  machineShotEl.appendChild(btn);
+});
+
+const machinePatternsEl = document.getElementById('machine-patterns');
+Object.entries(MACHINE_PATTERNS).forEach(([key, pat]) => {
+  const btn = document.createElement('button');
+  btn.className = 'bot-btn' + (key === currentMachinePattern ? ' on' : '');
+  btn.textContent = pat.name;
+  btn.dataset.key = key;
+  btn.addEventListener('click', () => {
+    currentMachinePattern = key;
+    machinePatternState.side = 1;
+    document.querySelectorAll('#machine-patterns .bot-btn').forEach(b => {
+      b.classList.toggle('on', b.dataset.key === key);
+    });
+  });
+  machinePatternsEl.appendChild(btn);
+});
+
+/* ============================================================
+   UI: Buttons
+   ============================================================ */
+document.getElementById('reset-serve').addEventListener('click', () => {
+  balls.length = 0; showFeedback('RESET', true);
+});
+document.getElementById('machine-fire').addEventListener('click', () => {
+  ensureAudio(); machineFire();
+});
+document.getElementById('machine-auto').addEventListener('change', e => {
+  machine.autoFire = e.target.checked;
+  if (machine.autoFire) machine.nextFireTime = performance.now() + 300;
+});
+document.getElementById('reset-machine').addEventListener('click', () => {
+  balls.length = 0; machine.autoFire = false;
+  document.getElementById('machine-auto').checked = false;
+});
+document.getElementById('reset-bot').addEventListener('click', () => {
+  ensureAudio(); resetBotMatch();
+});
+
+/* machine sliders */
+const mspeedEl = document.getElementById('mach-speed');
+const mspinEl = document.getElementById('mach-spin');
+const mintEl = document.getElementById('mach-interval');
+mspeedEl.addEventListener('input', () => {
+  machineSpeedMul = parseFloat(mspeedEl.value);
+  document.getElementById('lbl-mach-speed').textContent = machineSpeedMul.toFixed(2) + '×';
+});
+mspinEl.addEventListener('input', () => {
+  machineSpinMul = parseFloat(mspinEl.value);
+  document.getElementById('lbl-mach-spin').textContent = machineSpinMul.toFixed(2) + '×';
+});
+mintEl.addEventListener('input', () => {
+  machineInterval = parseFloat(mintEl.value);
+  document.getElementById('lbl-mach-interval').textContent = machineInterval.toFixed(1) + ' s';
+});
+
+/* ============================================================
+   UI: Settings
+   ============================================================ */
+const SLIDERS = [
+  { key:'V_REF',       label:'Sensitivity (V_REF)',   min:600, max:5000, step:50,   unit:'px/s' },
+  { key:'V_FORWARD',   label:'Max forward speed',     min:0.5, max:12,   step:0.1,  unit:'m/s' },
+  { key:'V_UP',        label:'Max vertical',          min:0,   max:8,    step:0.1,  unit:'m/s' },
+  { key:'V_SIDE',      label:'Max side',              min:0,   max:8,    step:0.1,  unit:'m/s' },
+  { key:'V_BASE',      label:'Base speed',            min:0,   max:5,    step:0.1,  unit:'m/s' },
+  { key:'curvBoost',   label:'Spin from curvature',   min:0,   max:5,    step:0.1,  unit:'×' },
+  { key:'restitution', label:'Hit restitution',       min:0.3, max:1,    step:0.01, unit:'' },
+  { key:'friction',    label:'Rubber friction',       min:0.05,max:1.5,  step:0.01, unit:'' },
+  { key:'racketMass',  label:'Racket mass',           min:0.05,max:1,    step:0.01, unit:'kg' },
+  { key:'gravity',     label:'Gravity G',             min:0,   max:20,   step:0.1,  unit:'m/s²' },
+  { key:'scale',       label:'Table scale',           min:120, max:340,  step:5,    unit:'px/m' },
+];
+const grid = document.getElementById('settings-grid');
+const inputs = {};
+function fmtVal(v, s){
+  if (s.step >= 1) return v.toFixed(0) + (s.unit ? ' '+s.unit : '');
+  if (s.step >= 0.1) return v.toFixed(1) + (s.unit ? ' '+s.unit : '');
+  return v.toFixed(2) + (s.unit ? ' '+s.unit : '');
+}
+SLIDERS.forEach(s => {
+  const div = document.createElement('div');
+  div.className = 'ctrl';
+  div.innerHTML = `<label>${s.label} <b id="lbl-${s.key}">${fmtVal(settings[s.key], s)}</b></label>
+    <input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${settings[s.key]}">`;
+  grid.appendChild(div);
+  const inp = div.querySelector('input');
+  inputs[s.key] = inp;
+  inp.addEventListener('input', () => {
+    settings[s.key] = parseFloat(inp.value);
+    document.getElementById('lbl-'+s.key).textContent = fmtVal(settings[s.key], s);
+  });
+});
+const tNet = document.getElementById('t-net');
+const tTrail = document.getElementById('t-trail');
+const tSound = document.getElementById('t-sound');
+const tZone = document.getElementById('t-zone');
+tNet.addEventListener('change', () => settings.showNet = tNet.checked);
+tTrail.addEventListener('change', () => settings.showTrail = tTrail.checked);
+tSound.addEventListener('change', () => { settings.soundOn = tSound.checked; if (settings.soundOn) ensureAudio(); });
+tZone.addEventListener('change', () => settings.showZone = tZone.checked);
+
+document.getElementById('reset-settings').addEventListener('click', () => {
+  Object.assign(settings, defaults);
+  for (const s of SLIDERS){
+    inputs[s.key].value = settings[s.key];
+    document.getElementById('lbl-'+s.key).textContent = fmtVal(settings[s.key], s);
+  }
+  tNet.checked = settings.showNet;
+  tTrail.checked = settings.showTrail;
+  tSound.checked = settings.soundOn;
+  tZone.checked = settings.showZone;
+  timeScale = 0.5;
+  document.querySelectorAll('.slowmo-btn').forEach(b => {
+    b.classList.toggle('on', b.dataset.s === '0.5');
+  });
+});
+document.querySelectorAll('.slowmo-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    timeScale = parseFloat(btn.dataset.s);
+    document.querySelectorAll('.slowmo-btn').forEach(b => {
+      b.classList.toggle('on', b === btn);
+    });
+  });
+});
+
+/* ============================================================
+   START
+   ============================================================ */
+updateScoreboard();
+setMode(MODE.SERVE);
+lastUpdateTime = performance.now();
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
