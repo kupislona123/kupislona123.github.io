@@ -233,8 +233,8 @@ let mode = MODE.SERVE;
 let currentEnv = ENV.CLEAN;
 
 const defaults = {
-  V_REF:3000, V_FORWARD:5.0, V_UP:4.0, V_SIDE:4.0, V_BASE:1.2,
-  curvBoost:2.0, restitution:0.85, friction:0.9, racketMass:0.15,
+  V_REF:5000, V_FORWARD:5.0, V_UP:8.0, V_SIDE:4.0, V_BASE:1.2,
+  curvBoost:3.0, restitution:0.85, friction:0.9, racketMass:0.45,
   gravity:9.81, scale:220,
   showNet:true, showTrail:false, soundOn:true, showZone:false,
 };
@@ -822,29 +822,12 @@ const BOTS = {
     desc:'Varied serves, returns ~95% — less on harder shots. Adapts to your game.',
     baseReturn:0.99, difficultyFactor:0.08,
     serves: [
-      { vx:-2.0, vy:2.1, spinZ: 150 },
-      { vx:-2.0, vy:2.1, spinZ:-100 },
-      { vx:-2.1, vy:2.0, spinZ: 0 },
-      { vx:-2.0, vy:2.1, spinY: 180 },
-      { vx:-2.2, vy:2.0, spinZ: 200 },
-      { vx:-2.1, vy:2.05, spinZ:-180 },
+      { vx:-1.9, vy:2.1, spinZ: 0 },
+      { vx:-1.9, vy:2.1, spinZ:-100 },
     ],
     planReturn: () => smartPlan(),
   },
-  defender: {
-    name:'Defender', emoji:'🛡️',
-    desc:'Training partner. Returns softly to the center — ideal for practice.',
-    baseReturn:0.998, difficultyFactor:0.02,
-    serves: [
-      { vx:-2.0, vy:2.1, spinZ:-150 },
-      { vx:-2.0, vy:2.0, spinZ:-200 },
-    ],
-    planReturn: () => ({
-      target:[0.7, TABLE.h, (Math.random()-0.5)*0.35],
-      spin:[0, 0, -100 - Math.random()*100],
-      T: 0.90,
-    }),
-  },
+
   attacker: {
     name:'Attacker', emoji:'⚔️',
     desc:'Fast topspins to the corners. Misses more often but keeps pressure.',
@@ -890,9 +873,8 @@ const BOTS = {
     desc:'Hardest. Strong spin, precise angles.',
     baseReturn:0.99, difficultyFactor:0.06,
     serves: [
-      { vx:-2.1, vy:2.0, spinZ: 300 },
-      { vx:-2.1, vy:2.0, spinZ:-280 },
-      { vx:-2.1, vy:2.0, spinY: 280 },
+      { vx:-1.9, vy:2.1, spinZ: 0 },
+      { vx:-1.9, vy:2.1, spinZ:-100 },
     ],
     planReturn: () => {
       const side = Math.random() < 0.5 ? -1 : 1;
