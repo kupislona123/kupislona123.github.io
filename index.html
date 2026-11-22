@@ -102,9 +102,13 @@
     padding:8px 12px;background:rgba(56,211,159,.06);border-radius:8px;
     border-left:3px solid var(--grn)}
   .hint b{color:var(--grn);font-weight:600}
-  body.mode-serve .machine-only, body.mode-serve .bot-only{display:none}
-  body.mode-machine .serve-only, body.mode-machine .bot-only{display:none}
-  body.mode-bot .serve-only, body.mode-bot .machine-only{display:none}
+  body.mode-serve .machine-only, body.mode-serve .bot-only, body.mode-serve .multi-only{display:none}
+  body.mode-machine .serve-only, body.mode-machine .bot-only, body.mode-machine .multi-only{display:none}
+  body.mode-bot .serve-only, body.mode-bot .machine-only, body.mode-bot .multi-only{display:none}
+  body.mode-multi .serve-only, body.mode-multi .machine-only, body.mode-multi .bot-only{display:none}
+  body.mode-multi .multi-only{display:block}
+  body.mode-multi #scoreboard{display:grid!important}
+
 </style>
 </head>
 <body class="mode-serve">
@@ -116,6 +120,7 @@
     <button class="mode-btn on" data-mode="serve">Serve Practice</button>
     <button class="mode-btn" data-mode="machine">Machine Practice</button>
     <button class="mode-btn" data-mode="bot">Play vs Bot</button>
+    <button class="mode-btn" data-mode="multi">Play vs Friend</button>
     <div class="env-group">
       <button class="env-btn" data-env="chinese" title="Chinese basement">🇨🇳</button>
       <button class="env-btn" data-env="olympic" title="Olympic hall">🏆</button>
@@ -198,6 +203,32 @@
     </div>
   </div>
 
+
+  <div class="panel multi-only">
+    <h2>Play vs Friend (WebRTC)</h2>
+    <div id="multi-lobby">
+      <div class="row" style="gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <button class="btn" id="multi-create">Create Room</button>
+        <input id="multi-join-id" placeholder="Friend's Room ID" style="flex:1;min-width:160px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:#1b2635;color:var(--txt);font-size:13px">
+        <button class="btn" id="multi-join">Join</button>
+      </div>
+      <div id="multi-status" style="font-size:13px;color:var(--dim);line-height:1.5">Create a room and send the ID to your friend, or join with their ID.</div>
+      <div id="multi-room-id" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(56,211,159,.1);border-radius:8px;border:1px solid var(--grn);font-size:14px">
+        Your Room ID: <b id="multi-my-id" style="color:var(--grn);letter-spacing:1px"></b>
+        <button class="btn" id="multi-copy" style="margin-left:10px;padding:4px 10px;font-size:12px">Copy</button>
+      </div>
+    </div>
+    <div id="multi-ingame" style="display:none">
+      <div class="row">
+        <button class="btn" id="reset-multi">↻ New match</button>
+        <button class="btn" id="multi-disconnect" style="background:#3a1a1a;border-color:#5a2a2a">Disconnect</button>
+      </div>
+      <div class="hint" style="background:rgba(56,211,159,.06);border-left-color:var(--grn);margin-top:10px">
+        <b>Rules:</b> first to 11, win by 2. Physics is fully shared — same ball flight on both sides.
+      </div>
+    </div>
+  </div>
+
   <div class="panel">
     <h2>Control Settings</h2>
     <div class="grid" id="settings-grid"></div>
@@ -220,6 +251,7 @@
   </div>
 </div>
 
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -227,7 +259,7 @@
 /* ============================================================
    MODES, ENV, SETTINGS
    ============================================================ */
-const MODE = { SERVE:'serve', MACHINE:'machine', BOT:'bot' };
+const MODE = { SERVE:'serve', MACHINE:'machine', BOT:'bot', MULTI:'multi' };
 const ENV  = { CHINESE:'chinese', OLYMPIC:'olympic', CLEAN:'clean' };
 let mode = MODE.SERVE;
 let currentEnv = ENV.CLEAN;
@@ -238,7 +270,221 @@ const defaults = {
   gravity:9.81, scale:220,
   showNet:true, showTrail:false, soundOn:true, showZone:false,
 };
+
 const settings = {...defaults};
+
+/* ============================================================
+   MULTIPLAYER (WebRTC via PeerJS)
+   ============================================================ */
+const multi = {
+  peer: null,
+  conn: null,
+  role: null,          // 'host' | 'client'
+  myId: null,
+  connected: false,
+  remoteName: 'Friend',
+};
+
+function multiSetStatus(msg, isError=false){
+  const el = document.getElementById('multi-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--red)' : 'var(--dim)';
+}
+
+function multiSend(data){
+  if (multi.conn && multi.conn.open){
+    try { multi.conn.send(data); } catch(e){ console.warn('send failed', e); }
+  }
+}
+
+function multiOnData(data){
+  if (!data || !data.type) return;
+
+  // Game messages only matter while we are actually in multiplayer mode
+  if ((data.type === 'hit' || data.type === 'point') && mode !== MODE.MULTI) return;
+
+  if (data.type === 'hit'){
+    if (game.phase === 'game-over' || game.phase === 'idle') return;
+    // Returns are only valid during a rally. Serves are always accepted
+    // (the two sides' pause timers can differ by the network latency).
+    if (!data.isServe && game.phase !== 'rally') return;
+
+    // Remote player hit. Rotate 180° about the vertical axis through the
+    // table centre: x -> L-x, z -> -z. Vectors (pos/vel) and the axial spin
+    // vector transform the same way: (x,y,z) -> (-x, y, -z).
+    const pos = [
+      TABLE.l - data.pos[0],
+      data.pos[1],
+      -data.pos[2]
+    ];
+    const vel = [
+      -data.vel[0],
+      data.vel[1],
+      -data.vel[2]
+    ];
+    const spin = [
+      -data.spin[0],
+      data.spin[1],
+      -data.spin[2]
+    ];
+    // Simulate with the SENDER's physics settings so both peers get the
+    // same trajectory and the same events (net, bounces, floor).
+    const sg = settings.gravity, sn = settings.showNet;
+    if (typeof data.g === 'number') settings.gravity = data.g;
+    if (typeof data.net === 'boolean') settings.showNet = data.net;
+    const result = simulateFlight(pos, vel, spin);
+    settings.gravity = sg; settings.showNet = sn;
+    const ball = createBall({
+      pos, vel, spin,
+      lastHitter: 'bot',      // remote is always the opponent on our screen
+      isServe: !!data.isServe,
+      trajResult: result,
+    });
+    // Clear existing active balls
+    for (const b of balls) b.active = false;
+    balls.push(ball);
+    game.currentBall = ball;
+    game.phase = 'rally';
+    ensureAudio();
+    // Sound: remote hit always sounds like opponent
+    playBotHit(Math.hypot(...data.vel));
+    updateReadouts(data.vel, data.spin, data.fallSpeed || 0);
+    updateScoreboard();
+    showFeedback(data.isServe ? 'FRIEND SERVE' : 'FRIEND HIT', true);
+  }
+  else if (data.type === 'point'){
+    // The friend conceded this point, so it is ours. seq = number of points
+    // already played when they conceded; it filters duplicates / stale msgs.
+    if (game.phase === 'game-over' || game.phase === 'idle') return;
+    if (data.seq !== game.playerScore + game.botScore) return;
+    awardPoint('player', data.reason || 'friend fault', true);
+  }
+  else if (data.type === 'reset'){
+    if (mode !== MODE.MULTI) return;
+    resetMultiMatch(false); // false = don't re-broadcast
+  }
+  else if (data.type === 'ready'){
+    multiSetStatus('Friend connected! Starting match…');
+    showMultiIngame(true);
+    if (multi.role === 'host'){
+      resetMultiMatch(true);
+    }
+  }
+  else if (data.type === 'ping'){
+    multiSend({ type: 'pong' });
+  }
+}
+
+function multiSetupConnection(conn){
+  multi.conn = conn;
+  conn.on('open', () => {
+    multi.connected = true;
+    multiSetStatus('Connected to friend!');
+    showMultiIngame(true);
+    // Client tells host it's ready
+    if (multi.role === 'client'){
+      multiSend({ type: 'ready' });
+    }
+  });
+  conn.on('data', multiOnData);
+  conn.on('close', () => {
+    multi.connected = false;
+    multi.conn = null;
+    multiSetStatus('Friend disconnected', true);
+    showMultiIngame(false);
+  });
+  conn.on('error', (err) => {
+    console.error(err);
+    multiSetStatus('Connection error: ' + (err.message || err), true);
+  });
+}
+
+function multiCreateRoom(){
+  if (typeof Peer === 'undefined'){ multiSetStatus('PeerJS failed to load (check internet / adblock)', true); return; }
+  if (multi.peer) { try{ multi.peer.destroy(); }catch(e){} }
+  multi.role = 'host';
+  multiSetStatus('Creating room…');
+  multi.peer = new Peer({ debug: 1 });
+  multi.peer.on('open', (id) => {
+    multi.myId = id;
+    document.getElementById('multi-my-id').textContent = id;
+    document.getElementById('multi-room-id').style.display = 'block';
+    multiSetStatus('Room created. Send this ID to your friend.');
+  });
+  multi.peer.on('connection', (conn) => {
+    // Only one friend per room: a second connection must not hijack the match
+    if (multi.connected){
+      conn.on('open', () => { try { conn.close(); } catch(e){} });
+      return;
+    }
+    multiSetupConnection(conn);
+  });
+  multi.peer.on('error', (err) => {
+    multiSetStatus('Peer error: ' + err.type, true);
+  });
+}
+
+function multiJoinRoom(id){
+  id = (id || '').trim();
+  if (!id){ multiSetStatus('Enter Room ID', true); return; }
+  if (typeof Peer === 'undefined'){ multiSetStatus('PeerJS failed to load (check internet / adblock)', true); return; }
+  if (multi.peer) { try{ multi.peer.destroy(); }catch(e){} }
+  multi.role = 'client';
+  multiSetStatus('Connecting to ' + id + '…');
+  multi.peer = new Peer({ debug: 1 });
+  multi.peer.on('open', () => {
+    const conn = multi.peer.connect(id, { reliable: true });
+    multiSetupConnection(conn);
+  });
+  multi.peer.on('error', (err) => {
+    multiSetStatus('Join error: ' + err.type, true);
+  });
+}
+
+function multiDisconnect(){
+  if (multi.conn) try{ multi.conn.close(); }catch(e){}
+  if (multi.peer) try{ multi.peer.destroy(); }catch(e){}
+  multi.peer = null; multi.conn = null; multi.connected = false;
+  multi.role = null; multi.myId = null;
+  showMultiIngame(false);
+  multiSetStatus('Disconnected. Create or join a room.');
+  document.getElementById('multi-room-id').style.display = 'none';
+}
+
+function showMultiIngame(on){
+  document.getElementById('multi-lobby').style.display = on ? 'none' : 'block';
+  document.getElementById('multi-ingame').style.display = on ? 'block' : 'none';
+}
+
+function resetMultiMatch(broadcast=true){
+  game.playerScore = 0;
+  game.botScore = 0;
+  // Хост всегда подаёт первым. На хосте "player" = хост,
+  // на клиенте хост — это "bot".
+  game.serveTurn = (multi.role === 'host') ? 'player' : 'bot';
+  game.servesRemaining = 2;
+  game.phase = 'idle';
+  game.winner = null;
+  game.currentBall = null;
+  game.restartAt = 0;
+  balls.length = 0;
+  updateScoreboard();
+  startNextServe();
+  if (broadcast) multiSend({ type: 'reset' });
+}
+
+/* Send a completed hit to the other peer */
+function multiBroadcastHit({ pos, vel, spin, lastHitter, isServe, fallSpeed }){
+  multiSend({
+    type: 'hit',
+    g: settings.gravity, net: settings.showNet,
+    pos, vel, spin,
+    lastHitter, isServe: !!isServe,
+    fallSpeed: fallSpeed || 0,
+  });
+}
+
 
 const FPHYS = { rho:1.2, Cd:0.4, Cm:0.3, eBounce:0.85, eFloor:0.12 };
 function G(){ return settings.gravity; }
@@ -716,7 +962,7 @@ const MACHINE_PATTERNS = {
     z: (Math.random() - 0.5) * 1.0,
     vz: (Math.random() - 0.5) * 1.2,
   })},
-  mix:    { name: 'Mix',      generate: () => {
+  mix:    { name: 'MIX ALL',      generate: () => {
     const keys = Object.keys(MACHINE_SHOT_PRESETS);
     const k = keys[Math.floor(Math.random() * keys.length)];
     return {
@@ -1016,8 +1262,18 @@ function checkWinner(){
   return null;
 }
 
-function awardPoint(side, reason){
-  if (game.phase !== 'rally' && game.phase !== 'serving-player') return;
+function awardPoint(side, reason, fromNetwork){
+  if (mode === MODE.MULTI){
+    if (game.phase === 'game-over' || game.phase === 'idle') return;
+    if (!fromNetwork){
+      // Each peer simulates the same ball, so both detect every fault.
+      // Only the peer at fault declares it ("I lost this point"); the other
+      // side applies it when the message arrives. This removes the race where
+      // one side called a "miss" just before the friend's hit arrived.
+      if (side !== 'bot' || game.phase !== 'rally') return;
+      multiSend({ type:'point', seq: game.playerScore + game.botScore, reason });
+    }
+  } else if (game.phase !== 'rally' && game.phase !== 'serving-player') return;
   if (side === 'player') game.playerScore++;
   else game.botScore++;
 
@@ -1045,7 +1301,7 @@ function awardPoint(side, reason){
     game.phase = 'point-pause';
     game.pauseUntil = performance.now() + 1400;
     showFeedback(
-      (side === 'player' ? 'YOUR POINT' : "BOT'S POINT") + ' — ' + reason,
+      (side === 'player' ? 'YOUR POINT' : (mode === MODE.MULTI ? "FRIEND'S POINT" : "BOT'S POINT")) + ' — ' + reason,
       side === 'player'
     );
   }
@@ -1081,7 +1337,7 @@ function processBotEvent(ball, ev){
 
     if (side === 'bot' && lastSide === 'player') trackPlayerPlacement(ev.z);
 
-    if (side === 'bot' && recvSide === 'bot' && bouncesOnRecvSide === 1){
+    if (mode === MODE.BOT && side === 'bot' && recvSide === 'bot' && bouncesOnRecvSide === 1){
       const retBall = botTryReturn(ball);
       if (retBall){
         ball.active = false;
@@ -1109,7 +1365,10 @@ function startNextServe(){
     game.phase = 'serving-player';
   } else {
     game.phase = 'serving-bot';
-    game.botServeAt = performance.now() + 600;
+    if (mode === MODE.BOT){
+      game.botServeAt = performance.now() + 600;
+    }
+    // in MULTI we simply wait for the friend to serve (their hit arrives via network)
   }
   updateScoreboard();
 }
@@ -1212,16 +1471,17 @@ function updateReadouts(v, om, fallSpeed){
 function updateScoreboard(){
   document.getElementById('player-score').textContent = game.playerScore;
   document.getElementById('bot-score').textContent = game.botScore;
-  document.getElementById('bot-name-disp').textContent = BOTS[currentBot].name;
+  const oppName = mode === MODE.MULTI ? 'Friend' : BOTS[currentBot].name;
+  document.getElementById('bot-name-disp').textContent = oppName;
   document.getElementById('serve-indicator').textContent =
-    'serve: ' + (game.serveTurn === 'player' ? 'you' : 'bot');
+    'serve: ' + (game.serveTurn === 'player' ? 'you' : (mode === MODE.MULTI ? 'friend' : 'bot'));
   document.querySelectorAll('.score-team').forEach(el => el.classList.remove('serving'));
   document.getElementById(game.serveTurn === 'player' ? 'score-player' : 'score-bot')
     .classList.add('serving');
   const statusEl = document.getElementById('rally-status');
   let s = '—';
   if (game.phase === 'serving-player') s = 'wait for serve';
-  else if (game.phase === 'serving-bot') s = 'bot serving…';
+  else if (game.phase === 'serving-bot') s = (mode === MODE.MULTI ? 'friend serving…' : 'bot serving…');
   else if (game.phase === 'rally') s = 'ball in play';
   else if (game.phase === 'point-pause') s = 'point';
   else if (game.phase === 'game-over') s = 'match over';
@@ -1499,7 +1759,7 @@ function drawBall(ball){
   ctx.fill();
   const inZone = ball.lastHitter === 'bot' &&
                  pos[0]>=PLAY_X_MIN && pos[0]<=PLAY_X_MAX && pos[1]>=0 &&
-                 (mode !== MODE.BOT || game.phase === 'rally');
+                 (mode !== MODE.BOT && mode !== MODE.MULTI || game.phase === 'rally');
   if (inZone){
     const grd = ctx.createRadialGradient(sx,sy,0,sx,sy,r*3.2);
     grd.addColorStop(0,'rgba(56,211,159,0.55)');
@@ -1576,7 +1836,7 @@ function drawGestureTrail(){
 function tryHit(gesture){
   if (mode === MODE.SERVE) return tryServeMode(gesture);
   if (mode === MODE.MACHINE) return tryReturnGesture(gesture);
-  if (mode === MODE.BOT){
+  if (mode === MODE.BOT || mode === MODE.MULTI){
     if (game.phase === 'serving-player') return tryBotModeServe(gesture);
     if (game.phase === 'rally') return tryBotModeReturn(gesture);
   }
@@ -1613,14 +1873,23 @@ function tryBotModeServe(gesture){
     pos: launchPos, vel: contact.v_out, spin: om,
     lastHitter:'player', isServe:true, trajResult: result,
   });
+  // Clear previous balls
+  for (const b of balls) b.active = false;
   balls.push(ball);
   game.currentBall = ball;
   game.phase = 'rally';
-  trackPlayerShot(contact.v_out, om);
+  if (mode === MODE.BOT) trackPlayerShot(contact.v_out, om);
   ensureAudio(); playPlayerHit(Math.hypot(...contact.v_out));
   updateReadouts(contact.v_out, om, sp.fallSpeed);
   showFeedback('SERVE', true);
   updateScoreboard();
+  // Multiplayer: send exact ball state to friend
+  if (mode === MODE.MULTI && multi.connected){
+    multiBroadcastHit({
+      pos: launchPos, vel: contact.v_out, spin: om,
+      lastHitter: 'player', isServe: true, fallSpeed: sp.fallSpeed
+    });
+  }
 }
 
 function findBestBall(filter){
@@ -1651,12 +1920,19 @@ function tryReturnGesture(gesture){
     lastHitter:'player', isServe:false, trajResult: result,
   });
   balls.push(newBall);
-  if (mode === MODE.BOT) game.currentBall = newBall;
-  trackPlayerShot(contact.v_out, om);
+  if (mode === MODE.BOT || mode === MODE.MULTI) game.currentBall = newBall;
+  if (mode === MODE.BOT) trackPlayerShot(contact.v_out, om);
   ensureAudio(); playPlayerHit(Math.hypot(...contact.v_out));
   const quality = Math.round(Math.max(0, 1 - bestDist/PLAY_SWEET_HALF)*100);
   updateReadouts(contact.v_out, om, 0);
   showFeedback(quality > 70 ? 'PERFECT' : quality > 40 ? 'GOOD' : 'WEAK', true);
+  // Multiplayer broadcast
+  if (mode === MODE.MULTI && multi.connected){
+    multiBroadcastHit({
+      pos: launchPos, vel: contact.v_out, spin: om,
+      lastHitter: 'player', isServe: false, fallSpeed: 0
+    });
+  }
 }
 
 function tryBotModeReturn(gesture){ tryReturnGesture(gesture); }
@@ -1711,9 +1987,9 @@ if (machine.zFrom !== machine.zNext || machine.z !== machine.zNext){
       if (ev.type === 'bounce') playTableBounce(1);
       else if (ev.type === 'floor') playFloorBounce(1);
       else if (ev.type === 'wall') playWallBounce();
-      if (mode === MODE.BOT) processBotEvent(ball, ev);
+      if (mode === MODE.BOT || mode === MODE.MULTI) processBotEvent(ball, ev);
       if (mode === MODE.MACHINE && (ev.type === 'floor' || ev.type === 'wall')) ball.active = false;
-      if (!ball.active || (mode === MODE.BOT && game.phase !== 'rally')) break;
+      if (!ball.active || ((mode === MODE.BOT || mode === MODE.MULTI) && game.phase !== 'rally')) break;
     }
     if (!ball.active) continue;
     if (ball.idx >= ball.traj.length - 1){
@@ -1730,6 +2006,9 @@ if (machine.zFrom !== machine.zNext || machine.z !== machine.zNext){
   }
   if (mode === MODE.BOT){
     if (game.phase === 'serving-bot' && now >= game.botServeAt) botDoServe();
+    if (game.phase === 'point-pause' && now >= game.pauseUntil) startNextServe();
+  }
+  if (mode === MODE.MULTI){
     if (game.phase === 'point-pause' && now >= game.pauseUntil) startNextServe();
   }
 
@@ -1814,17 +2093,44 @@ function setMode(newMode){
   document.body.classList.toggle('mode-serve', newMode === MODE.SERVE);
   document.body.classList.toggle('mode-machine', newMode === MODE.MACHINE);
   document.body.classList.toggle('mode-bot', newMode === MODE.BOT);
+  document.body.classList.toggle('mode-multi', newMode === MODE.MULTI);
   balls.length = 0;
   machine.autoFire = false;
   const ma = document.getElementById('machine-auto');
   if (ma) ma.checked = false;
   document.getElementById('scoreboard').style.display =
-    newMode === MODE.BOT ? 'grid' : 'none';
+    (newMode === MODE.BOT || newMode === MODE.MULTI) ? 'grid' : 'none';
+  // Update opponent name on scoreboard
+  const botName = document.getElementById('bot-name-disp');
+  if (botName) botName.textContent = newMode === MODE.MULTI ? 'Friend' : 'Smart Bot';
   if (newMode === MODE.BOT) resetBotMatch();
+  if (newMode === MODE.MULTI){
+    game.phase = 'idle';
+    showMultiIngame(multi.connected);
+    if (multi.connected) resetMultiMatch(true); // re-entering with a live connection
+    else updateScoreboard();
+  }
 }
+
 document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
   btn.addEventListener('click', () => setMode(btn.dataset.mode));
 });
+
+// Multiplayer UI
+document.getElementById('multi-create')?.addEventListener('click', multiCreateRoom);
+document.getElementById('multi-join')?.addEventListener('click', () => {
+  multiJoinRoom(document.getElementById('multi-join-id').value);
+});
+document.getElementById('multi-join-id')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') multiJoinRoom(e.target.value);
+});
+document.getElementById('multi-copy')?.addEventListener('click', () => {
+  const id = document.getElementById('multi-my-id').textContent;
+  navigator.clipboard?.writeText(id).then(() => multiSetStatus('ID copied!'));
+});
+document.getElementById('multi-disconnect')?.addEventListener('click', multiDisconnect);
+document.getElementById('reset-multi')?.addEventListener('click', () => resetMultiMatch(true));
+
 document.querySelectorAll('.env-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     currentEnv = btn.dataset.env;
@@ -1934,7 +2240,7 @@ mintEl.addEventListener('input', () => {
    UI: Settings
    ============================================================ */
 const SLIDERS = [
-  { key:'V_REF',       label:'Sensitivity (V_REF)',   min:600, max:5000, step:50,   unit:'px/s' },
+  { key:'V_REF',       label:'Sensitivity',           min:600, max:5000, step:50,   unit:'px/s' },
   { key:'V_FORWARD',   label:'Max forward speed',     min:0.5, max:12,   step:0.1,  unit:'m/s' },
   { key:'V_UP',        label:'Max vertical',          min:0,   max:8,    step:0.1,  unit:'m/s' },
   { key:'V_SIDE',      label:'Max side',              min:0,   max:8,    step:0.1,  unit:'m/s' },
@@ -1943,7 +2249,7 @@ const SLIDERS = [
   { key:'restitution', label:'Hit restitution',       min:0.3, max:1,    step:0.01, unit:'' },
   { key:'friction',    label:'Rubber friction',       min:0.05,max:1.5,  step:0.01, unit:'' },
   { key:'racketMass',  label:'Racket mass',           min:0.05,max:1,    step:0.01, unit:'kg' },
-  { key:'gravity',     label:'Gravity G',             min:0,   max:20,   step:0.1,  unit:'m/s²' },
+  { key:'gravity',     label:'Gravity',             min:0,   max:20,   step:0.1,  unit:'m/s²' },
   { key:'scale',       label:'Table scale',           min:120, max:340,  step:5,    unit:'px/m' },
 ];
 const grid = document.getElementById('settings-grid');
